@@ -1,10 +1,10 @@
 ---
-title: MDX Syntax Guide
+title: MDX 语法指南
 published: 2026-08-08
-description: Learn how to combine Markdown, components, JavaScript expressions, callouts, Wiki Links, math, code groups, and images in an MDX article.
+description: 了解如何在 MDX 文章中组合使用 Markdown、组件、JavaScript 表达式、提示框、Wiki 链接、数学公式、代码组和图片。
 image: /images/demos/image-grid-demo/square-1.webp
-tags: [Markdown, MDX, Astro, Guide]
-category: Guides
+tags: [Markdown, MDX, Astro, 指南]
+category: 指南
 draft: false
 ---
 
@@ -13,22 +13,17 @@ import ContentPipelineFixture from "../../components/features/markdown/ContentPi
 export const topics = ["components", "expressions", "extended Markdown"];
 export const componentMessage = "This panel is rendered by an imported Astro component.";
 
-# MDX Syntax Guide
+# MDX 语法指南
 
-MDX lets you write familiar Markdown while adding components and JavaScript
-expressions where ordinary Markdown is not enough. This guide introduces the
-syntax that is most useful when authoring an article in a content-driven Astro site.
+MDX 让你在编写熟悉的 Markdown 的同时，可以在普通 Markdown 不够用的地方加入组件和 JavaScript 表达式。本指南介绍在以内容驱动的 Astro 站点撰写文章时最常用的语法。
 
-:::note[What is MDX?]
-An `.mdx` file is still a Markdown document. Headings, lists, links, images,
-code blocks, and other Markdown syntax continue to work, while imports,
-components, JSX, and expressions become available as optional extensions.
+:::note[什么是 MDX？]
+`.mdx` 文件本质上仍是 Markdown 文档。标题、列表、链接、图片、代码块等 Markdown 语法依然有效，同时导入、组件、JSX 和表达式作为可选扩展可供使用。
 :::
 
 ## Frontmatter
 
-Every article begins with YAML frontmatter. It defines metadata used by article
-pages, lists, search results, and feeds:
+每篇文章都以 YAML frontmatter 开头，它定义了文章页面、列表、搜索结果和订阅源使用的元数据：
 
 ```yaml
 ---
@@ -41,13 +36,11 @@ draft: false
 ---
 ```
 
-Keep frontmatter focused on metadata. Imports and JavaScript declarations
-belong immediately after the closing `---` delimiter.
+让 frontmatter 专注于元数据。导入和 JavaScript 声明应放在闭合的 `---` 分隔符之后。
 
-## Standard Markdown
+## 标准 Markdown
 
-Most of an MDX article should remain ordinary Markdown. This keeps the source
-easy to read and gives RSS and Atom readers a useful static version.
+MDX 文章的大部分内容应保持为普通 Markdown。这样既保持了源码的可读性，也为 RSS 和 Atom 阅读器提供了有用的静态版本。
 
 ```markdown
 ## A section heading
@@ -59,10 +52,9 @@ easy to read and gives RSS and Atom readers a useful static version.
 > A blockquote remains a blockquote.
 ```
 
-## Importing and Using Components
+## 导入并使用组件
 
-MDX can import Astro components at the top level and use them directly in the
-document. Component names must begin with a capital letter.
+MDX 可以在顶层导入 Astro 组件，并在文档中直接使用。组件名称必须以大写字母开头。
 
 ```mdx
 import Notice from "../../components/Notice.astro";
@@ -72,17 +64,15 @@ export const message = "Props can come from an MDX expression.";
 <Notice label={message} />
 ```
 
-The following panel is a live component rendered by this article:
+下面的面板就是由本文渲染的一个实际组件：
 
 <ContentPipelineFixture label={componentMessage} />
 
-Use components for reusable interface elements or structured content. Prefer
-Markdown for regular prose so the article remains portable and readable.
+将组件用于可复用的界面元素或结构化内容。常规叙述请优先使用 Markdown，这样文章能保持可移植性和可读性。
 
-## JavaScript Expressions
+## JavaScript 表达式
 
-Top-level `export const` declarations can prepare values for the document.
-Insert a JavaScript expression with braces:
+顶层的 `export const` 声明可以为文档准备值。使用大括号插入 JavaScript 表达式：
 
 ```mdx
 export const topics = ["components", "expressions", "extended Markdown"];
@@ -90,19 +80,16 @@ export const topics = ["components", "expressions", "extended Markdown"];
 This guide covers {topics.length} topics: {topics.join(", ")}.
 ```
 
-This live expression counts {topics.length} topics: {topics.join(", ")}.
+这个实时表达式统计的主题数量为 {topics.length} 个：{topics.join(", ")}。
 
-Expressions should be deterministic during the build. Browser-only APIs such
-as `window` and `document` belong inside a component script rather than the MDX
-module body.
+表达式在构建期间应当是确定性的。诸如 `window` 和 `document` 等仅浏览器可用的 API 应放在组件脚本中，而不是 MDX 模块主体中。
 
-## Callouts
+## 提示框
 
-Callouts highlight information without requiring a custom component:
+提示框可以突出显示信息，无需自定义组件：
 
-:::tip[Use the simplest syntax that works]
-Choose Markdown for prose, an MDX expression for a small dynamic value, and a
-component when markup or behavior needs to be reused.
+:::tip[使用最简单可行的语法]
+叙述文字选择 Markdown，小的动态值使用 MDX 表达式，需要复用标记或行为时使用组件。
 :::
 
 ````markdown
@@ -111,13 +98,11 @@ This content is emphasized as a tip.
 :::
 ````
 
-## Wiki Links
+## Wiki 链接
 
-An inline Wiki Link points to another article while keeping the sentence
-readable. For example, continue with [[guide|the content guide]].
+行内 Wiki 链接指向另一篇文章，同时保持句子的可读性。例如，可以继续阅读 [[guide|内容指南]]。
 
-A standalone Wiki Link becomes an article card with its available metadata and
-cover image:
+独立的 Wiki 链接会变成一张带可用元数据和封面图的文章卡片：
 
 [[guide]]
 
@@ -127,18 +112,17 @@ Read [[guide|the content guide]] for more details.
 [[guide]]
 ```
 
-## Math and Chemistry
+## 数学与化学
 
-Inline math uses single dollar signs, while display equations use a pair. The
-`mhchem` extension is also available for chemical notation.
+行内数学公式使用单个美元符号，块级公式使用一对。`mhchem` 扩展也可用于化学符号。
 
-Einstein's mass-energy relation is $E = mc^2$.
+爱因斯坦的质能关系式是 $E = mc^2$。
 
 $$
 \int_{-\infty}^{\infty} e^{-x^2}\,dx = \sqrt{\pi}
 $$
 
-A chemical reaction can be written as $\ce{H2O + CO2 -> H2CO3}$.
+化学反应式可以写成 $\ce{H2O + CO2 -> H2CO3}$。
 
 ```markdown
 Inline: $E = mc^2$
@@ -148,10 +132,9 @@ Display: $$\int_0^1 x^2\,dx = \frac{1}{3}$$
 Chemistry: $\ce{H2O + CO2 -> H2CO3}$
 ```
 
-## Code Groups
+## 代码组
 
-Use a code group when readers may choose between equivalent examples. Each
-label corresponds to one fenced code block:
+当读者可能需要在等效示例之间选择时，可以使用代码组。每个标签对应一个围栏代码块：
 
 ::: code-group labels=[TypeScript, Shell]
 
@@ -179,46 +162,37 @@ pnpm build
 :::
 ````
 
-## Images and Captions
+## 图片与说明文字
 
-Image alt text describes the image for assistive technology. A Markdown title
-becomes a visible caption, and an optional `w-N%` token controls the width.
+图片的 alt 文本向辅助技术描述图片。Markdown 标题会变成可见的说明文字，可选的 `w-N%` 标记用于控制宽度。
 
-![A square demonstration image w-60%](/images/demos/image-grid-demo/square-1.webp "A caption generated from the Markdown image title")
+![方形演示图片 w-60%](/images/demos/image-grid-demo/square-1.webp "由 Markdown 图片标题生成的说明文字")
 
 ```markdown
 ![Descriptive alt text w-60%](./image.webp "Visible image caption")
 ```
 
-Valid widths range from `w-1%` to `w-100%`. Omit the token when the image should
-use the normal responsive width.
+有效宽度范围为 `w-1%` 到 `w-100%`。当图片应使用常规响应式宽度时，省略该标记即可。
 
-## Internal and External Links
+## 内部与外部链接
 
-Relative links and absolute URLs that use the configured site origin are
-classified as internal. Links to other origins receive the external-link
-attributes configured by the theme.
+使用已配置站点源地址的相对链接和绝对 URL 会被归类为内部链接。指向其他源地址的链接会带上主题配置的外部链接属性。
 
-- Visit the [About page using a relative site URL](/about/).
-- Compare it with an [external reference](https://example.com/reference).
+- 使用相对站点 URL 访问[关于页面](/about/)。
+- 与[外部参考](https://example.com/reference)进行对比。
 
-Use relative paths for internal content. External origins such as
-https://example.com/ are classified separately by the theme.
+内部内容使用相对路径。诸如 https://example.com/ 的外部源地址会由主题单独分类。
 
-## Writing Portable MDX
+## 编写可移植的 MDX
 
-The article page, RSS, and Atom share the same content pipeline. Interactive
-scripts are removed from feeds, but semantic HTML produced by components,
-callouts, Wiki Links, math, code groups, and images remains readable.
+文章页面、RSS 和 Atom 共享同一个内容管线。交互脚本会从订阅源中移除，但由组件、提示框、Wiki 链接、数学公式、代码组和图片产生的语义化 HTML 仍然可读。
 
-For reliable output:
+为确保输出可靠：
 
-1. Keep the main explanation in Markdown.
-2. Give images meaningful alt text and components semantic HTML.
-3. Avoid browser globals in top-level expressions.
-4. Ensure useful information is visible before client-side JavaScript runs.
-5. Run `pnpm test`, `pnpm check`, and `pnpm build` before publishing.
+1. 主要说明文字使用 Markdown。
+2. 为图片提供有意义的 alt 文本，为组件提供语义化 HTML。
+3. 避免在顶层表达式中使用浏览器全局变量。
+4. 确保有用信息在客户端 JavaScript 运行前即可见。
+5. 发布前运行 `pnpm test`、`pnpm check` 和 `pnpm build`。
 
-MDX works best as an extension of Markdown—not a replacement for it. Start with
-plain content, then introduce expressions and components only where they make
-the article clearer or more reusable.
+MDX 最适合作为 Markdown 的扩展，而非替代品。先从纯内容开始，仅在能让文章更清晰或更可复用的地方引入表达式和组件。
