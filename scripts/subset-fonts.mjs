@@ -14,6 +14,7 @@ import {
 	existsSync,
 	mkdirSync,
 	readFileSync,
+	readdirSync,
 	rmSync,
 	statSync,
 	writeFileSync,
@@ -235,6 +236,14 @@ async function main() {
 
 	const combined = `/* 由 scripts/subset-fonts.mjs 生成，请勿手改。 */\n${zenCss}\n${loliCss}`;
 	writeFileSync(FONTS_CSS, combined);
+
+	// 清理旧静态子集文件（字符集变化后 hash 不同，避免旧文件累积冗余）
+	for (const f of readdirSync(FONTS_DIR)) {
+		if (/^(loli-static-|zenmaru-).*\.woff2$/.test(f) && f !== zenName && f !== loliName) {
+			rmIfExists(join(FONTS_DIR, f));
+			console.log(`  清理旧子集：${f}`);
+		}
+	}
 
 	console.log("\n✔ 完成：");
 	console.log(`  Loli 静态子集：${loliName}（${fmtBytes(loliSize)}）`);

@@ -2,25 +2,6 @@ import type { TimelineItem } from "../components/features/timeline/types";
 
 export const timelineData: TimelineItem[] = [
 	{
-		id: "current-study",
-		title: "学习计算机科学与技术",
-		description:
-			"目前正在学习计算机科学与技术，专注于 Web 开发和软件工程。",
-		type: "education",
-		startDate: "2022-09-01",
-		location: "北京",
-		organization: "北京理工大学",
-		skills: ["Java", "Python", "JavaScript", "HTML/CSS", "MySQL"],
-		achievements: [
-			"当前 GPA：3.6/4.0",
-			"完成了数据结构与算法课程项目",
-			"参与了多个课程项目开发",
-		],
-		icon: "material-symbols:school",
-		color: "#059669",
-		featured: true,
-	},
-	{
 		id: "mizuki-blog-project",
 		title: "Mizuki 个人博客项目",
 		description:
@@ -148,39 +129,5 @@ export const timelineData: TimelineItem[] = [
 		],
 		icon: "material-symbols:school",
 		color: "#059669",
-	},
-	{
-		id: "high-school-graduation",
-		title: "高中毕业",
-		description:
-			"以优异成绩从高中毕业，并考入北京理工大学计算机科学与技术专业。",
-		type: "education",
-		startDate: "2019-09-01",
-		endDate: "2022-06-30",
-		location: "山东济南",
-		organization: "济南市第一中学",
-		achievements: [
-			"高考成绩：620 分",
-			"获得市级三好学生称号",
-			"在省级数学竞赛中获二等奖",
-		],
-		icon: "material-symbols:school",
-		color: "#2563EB",
-	},
-	{
-		id: "first-programming-experience",
-		title: "第一次编程体验",
-		description:
-			"在高中信息技术课上第一次接触编程，开始学习 Python 基础语法。",
-		type: "education",
-		startDate: "2021-03-01",
-		skills: ["Python", "Basic Programming Concepts"],
-		achievements: [
-			'完成了第一个 "Hello World" 程序',
-			"学习了基本的循环与条件语句",
-			"培养了对编程的兴趣",
-		],
-		icon: "material-symbols:code",
-		color: "#7C3AED",
 	},
 ];
