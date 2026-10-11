@@ -21,7 +21,7 @@ const { playlist, currentIndex, isPlaying, show, onClose, onPlaySong }: Props =
 		<div
 			class="playlist-content"
 			role="listbox"
-			aria-label="Playlist"
+			aria-label="播放列表"
 			aria-multiselectable="false"
 		>
 			{#each playlist as song, index}

@@ -3,12 +3,18 @@
  * 管理页面滚动相关的功能，包括自定义滚动条和滚动监听
  */
 
+// 以 ?url 方式引用 KaTeX 样式：Vite 只把它当作静态资源 URL，
+// 不会像 import "xxx.css" 那样被 Astro 收集进 head 造成渲染阻塞，
+// 仅当页面出现 .katex 元素时才由 checkKatex() 注入 <link>。
+import katexCssUrl from "katex/dist/katex.css?url";
+
 /**
  * 滚动处理器类
  * 负责自定义滚动条初始化和滚动事件管理
  */
 export class ScrollHandler {
 	private katexScrollbarStyleAdded = false;
+	private katexCssInjected = false;
 
 	/**
 	 * 初始化自定义滚动条
@@ -77,11 +83,22 @@ export class ScrollHandler {
 
 	/**
 	 * 检查并加载 KaTeX 样式
+	 * 仅在页面存在 .katex 公式元素时，才将样式注入 head，
+	 * 避免无公式页面也下载 katex.css（构建期不再被 Astro 收集为渲染阻塞资源）
 	 */
 	checkKatex(): void {
-		if (document.querySelector(".katex")) {
-			import("katex/dist/katex.css");
+		if (this.katexCssInjected) {
+			return;
 		}
+		if (!document.querySelector(".katex")) {
+			return;
+		}
+		const link = document.createElement("link");
+		link.rel = "stylesheet";
+		link.href = katexCssUrl;
+		link.setAttribute("data-katex-css", "true");
+		document.head.appendChild(link);
+		this.katexCssInjected = true;
 	}
 
 	/**

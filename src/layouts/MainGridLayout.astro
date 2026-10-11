@@ -24,6 +24,10 @@ import {
 	getTransparencyClass,
 	shouldEnableTransparency,
 } from "../utils/grid-layout-utils";
+import {
+	getDesktopHeroPreload,
+	getMobileHeroPreload,
+} from "../utils/shared-image-helper";
 import { widgetManager } from "../utils/widget-manager";
 import Layout from "./Layout.astro";
 import GridScripts from "./partials/GridScripts.astro";
@@ -68,6 +72,32 @@ const isHomePage = Astro.url.pathname === "/" || Astro.url.pathname === "";
 const layoutVariant = postSlug ? "post" : isHomePage ? "home" : "default";
 // 手机端非首页不显示banner的CSS类
 const mobileNonHomeBannerClass = !isHomePage ? "mobile-hide-banner" : "";
+
+// 首页 + 轮播模式时，为首帧 Hero 图片生成 <head> preload。
+// 参数与 Banner.astro 渲染的 <picture> 100% 共用（shared-image-helper），
+// 保证构建期哈希一致：preload 与渲染命中同一份文件，避免双倍下载。
+const mobileBannerList = Array.isArray(bannerImages.mobile)
+	? bannerImages.mobile
+	: bannerImages.mobile
+		? [bannerImages.mobile]
+		: [];
+const desktopBannerList = Array.isArray(bannerImages.desktop)
+	? bannerImages.desktop
+	: bannerImages.desktop
+		? [bannerImages.desktop]
+		: [];
+const isCarouselEnabled =
+	(siteConfig.banner.carousel?.enable ?? false) &&
+	(mobileBannerList.length > 1 || desktopBannerList.length > 1);
+
+const mobileHeroPreload =
+	isHomePage && isCarouselEnabled && mobileBannerList[0]
+		? await getMobileHeroPreload(mobileBannerList[0])
+		: null;
+const desktopHeroPreload =
+	isHomePage && isCarouselEnabled && desktopBannerList[0]
+		? await getDesktopHeroPreload(desktopBannerList[0])
+		: null;
 
 // 计算主内容区域位置
 const finalMainPanelTop = getMainPanelTop(
@@ -134,6 +164,31 @@ const defaultPostListLayout = siteConfig.postListLayout?.defaultMode || "list";
 	<IconifyLoader />
 
 	<!-- Navbar -->
+	<!-- Hero 首帧图片 preload：srcset 与 Banner.astro 渲染完全同参，slot="head" 提升进 <head> -->
+	{mobileHeroPreload && (
+		<link
+			slot="head"
+			rel="preload"
+			as="image"
+			media={mobileHeroPreload.media}
+			imagesrcset={mobileHeroPreload.imagesrcset}
+			imagesizes={mobileHeroPreload.imagesizes}
+			type={mobileHeroPreload.type}
+			fetchpriority="high"
+		/>
+	)}
+	{desktopHeroPreload && (
+		<link
+			slot="head"
+			rel="preload"
+			as="image"
+			media={desktopHeroPreload.media}
+			imagesrcset={desktopHeroPreload.imagesrcset}
+			imagesizes={desktopHeroPreload.imagesizes}
+			type={desktopHeroPreload.type}
+			fetchpriority="high"
+		/>
+	)}
 	<slot slot="head" name="head" />
 	<div
 		id="top-row"
@@ -152,6 +207,7 @@ const defaultPostListLayout = siteConfig.postListLayout?.defaultMode || "list";
 	<Banner
 		bannerImages={bannerImages}
 		mobileNonHomeBannerClass={mobileNonHomeBannerClass}
+		isHomePage={isHomePage}
 		showTextOverlay={isHomePage &&
 			(siteConfig.banner.homeText?.enable ?? false)}
 	/>

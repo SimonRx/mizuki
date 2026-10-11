@@ -94,7 +94,7 @@ function handleVolumeKeyDown(event: KeyboardEvent) {
 				type="button"
 				class="volume-btn"
 				onclick={onToggleMute}
-				aria-label="Toggle volume"
+				aria-label="切换音量"
 			>
 				<Icon
 					icon={isMuted || volume === 0
@@ -113,7 +113,7 @@ function handleVolumeKeyDown(event: KeyboardEvent) {
 				onkeydown={handleVolumeKeyDown}
 				role="slider"
 				tabindex="0"
-				aria-label="Volume"
+				aria-label="音量"
 				aria-valuemin="0"
 				aria-valuemax="100"
 				aria-valuenow={volumePercent}

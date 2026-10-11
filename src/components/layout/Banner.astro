@@ -11,6 +11,10 @@ import { Icon } from "astro-icon/components";
 import { siteConfig } from "../../config";
 import { BANNER_HEIGHT_EXTEND } from "../../constants/constants";
 import { getImageFormats, getImageQuality } from "../../utils/image-utils";
+import {
+	DESKTOP_HERO_WIDTHS,
+	MOBILE_HERO_WIDTHS,
+} from "../../utils/shared-image-helper";
 
 interface Props {
 	// Banner 配置
@@ -21,6 +25,10 @@ interface Props {
 
 	// 响应式
 	mobileNonHomeBannerClass?: string;
+
+	// 是否为首页：非首页移动端 banner 整块被隐藏（见 mobile-hide-banner），
+	// 此时不再渲染移动端 <picture>，避免浏览器仍然发起多余的图片请求（白下载）
+	isHomePage?: boolean;
 
 	// 文字覆盖层
 	showTextOverlay?: boolean;
@@ -35,6 +43,7 @@ interface Props {
 const {
 	bannerImages,
 	mobileNonHomeBannerClass = "",
+	isHomePage = true,
 	showTextOverlay = false,
 	overlayTitle = siteConfig.banner.homeText?.title,
 	overlaySubtitle = siteConfig.banner.homeText?.subtitle,
@@ -91,8 +100,8 @@ const bannerFormats = getImageFormats();
 			data-carousel-interval={carouselIntervalMs}
 			data-fade-ms={fadeMs}
 		>
-			{/* 移动端：media 条件保证桌面视口不会请求该资源 */}
-			{mobileImages.length > 0 && (
+			{/* 移动端：media 条件保证桌面视口不会请求该资源；非首页整块隐藏故不渲染 */}
+			{isHomePage && mobileImages.length > 0 && (
 				<div class="banner-image-slot-mobile absolute inset-0 block md:hidden">
 					<ViewportImage
 						alt="Mobile banner image 1"
@@ -100,7 +109,7 @@ const bannerFormats = getImageFormats();
 						src={mobileImages[0]}
 						media="(max-width: 767px)"
 						position={siteConfig.banner.position}
-						widths={[640, 1024, 1536]}
+						widths={MOBILE_HERO_WIDTHS}
 						sizes="100vw"
 						loading="eager"
 						fetchpriority="high"
@@ -109,23 +118,24 @@ const bannerFormats = getImageFormats();
 					/>
 				</div>
 			)}
-			{mobileImages.slice(1).map((src, i) => (
-				<template class="banner-tpl-mobile">
-					<ViewportImage
-						alt={`Mobile banner image ${i + 2}`}
-						class="object-cover h-full w-full"
-						src={src}
-						media="(max-width: 767px)"
-						position={siteConfig.banner.position}
-						widths={[640, 1024, 1536]}
-						sizes="100vw"
-						loading="lazy"
-						fetchpriority="low"
-						quality={bannerMobileQuality}
-						formats={bannerFormats}
-					/>
-				</template>
-			))}
+			{isHomePage &&
+				mobileImages.slice(1).map((src, i) => (
+					<template class="banner-tpl-mobile">
+						<ViewportImage
+							alt={`Mobile banner image ${i + 2}`}
+							class="object-cover h-full w-full"
+							src={src}
+							media="(max-width: 767px)"
+							position={siteConfig.banner.position}
+							widths={MOBILE_HERO_WIDTHS}
+							sizes="100vw"
+							loading="lazy"
+							fetchpriority="low"
+							quality={bannerMobileQuality}
+							formats={bannerFormats}
+						/>
+					</template>
+				))}
 
 			{/* 桌面端：media 条件保证移动视口不会请求该资源 */}
 			{desktopImages.length > 0 && (
@@ -137,7 +147,7 @@ const bannerFormats = getImageFormats();
 						src={desktopImages[0]}
 						media="(min-width: 768px)"
 						position={siteConfig.banner.position}
-						widths={[1024, 1536, 2048, 2560]}
+						widths={DESKTOP_HERO_WIDTHS}
 						sizes="100vw"
 						loading="eager"
 						fetchpriority="high"
@@ -154,7 +164,7 @@ const bannerFormats = getImageFormats();
 						src={src}
 						media="(min-width: 768px)"
 						position={siteConfig.banner.position}
-						widths={[1024, 1536, 2048, 2560]}
+						widths={DESKTOP_HERO_WIDTHS}
 						sizes="100vw"
 						loading="lazy"
 						fetchpriority="low"
@@ -712,7 +722,7 @@ const bannerFormats = getImageFormats();
 			id="banner-credit"
 			target="_blank"
 			rel="noopener"
-			aria-label="Visit image source"
+			aria-label="查看图片来源"
 			class:list={[
 				"group onload-animation transition-all absolute flex justify-center items-center rounded-full px-3 right-4 -top-13 bg-black/60 hover:bg-black/70 h-9",
 				{ "hover:pr-9 active:bg-black/80": hasBannerLink },

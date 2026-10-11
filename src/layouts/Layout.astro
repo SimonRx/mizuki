@@ -23,9 +23,14 @@ import "../styles/widget-responsive.css";
 import "../styles/layout-responsive.css";
 import "../styles/mobile-navbar.css";
 import "../styles/wallpaper-navbar-transparent.css";
-import "../styles/fancybox-custom.css";
 import "../styles/expressive-code.css";
 import "../styles/panel-animations.css";
+
+// 字体 @font-face：以 ?raw 内联为静态 style（带 data-swup-persist），
+// 避免 JS 动态注入的 link 被 SwupHeadPlugin 切页时误删导致 CSSOM 断裂闪烁。
+// 字体族变量 --font-body/--font-cjk 则由下方脚本空闲时设置到 html 内联样式，
+// 字体文件在空闲后才开始下载，不与首屏关键资源竞争带宽。
+import fontsCss from "../styles/fonts.css?raw";
 
 // 导入新提取的 Head 组件
 import AnalyticsScripts from "./partials/AnalyticsScripts.astro";
@@ -142,7 +147,8 @@ const bannerOffsetByPosition = {
 const bannerOffset =
 	bannerOffsetByPosition[siteConfig.banner.position || "center"];
 
-// CSS 变量由 Astro Font API 自动注入，body 字体通过 --font-sans 组合 --font-body 与 --font-cjk 应用
+// 自定义字体的 @font-face 规则由 src/styles/fonts.css 提供（scripts/subset-fonts.mjs 生成），
+// 这里仅注入字体族变量，body 字体通过 --font-sans 组合 --font-body 与 --font-cjk 应用
 ---
 
 <!doctype html>
@@ -163,9 +169,33 @@ const bannerOffset =
 			@layer properties, theme, base, components, utilities;
 		</style>
 
-		{customFontsEnabled && <Font cssVariable="--font-body" preload />}
-		{customFontsEnabled && <Font cssVariable="--font-cjk" />}
 		{customFontsEnabled && <Font cssVariable="--font-jetbrains-mono" />}
+
+		<!-- 字体 @font-face 静态内联 + data-swup-persist：
+		     SwupHeadPlugin 的 head diff 只保留"新页面 HTML 中存在"的 persist 元素，
+		     JS 动态注入的 link 不在初始 HTML 中，切页会被误删导致 CSSOM 断裂（闪烁）。
+		     静态内联后 @font-face 始终存在，切页零新增请求、零闪烁。
+		     字体族变量 --font-body/--font-cjk 由下方脚本在空闲时设置到 html 内联样式，
+		     字体文件在空闲后才开始下载，不与首屏关键资源竞争带宽。 -->
+		<style is:inline set:html={fontsCss} data-swup-persist></style>
+
+		<script is:inline define:vars={{ customFontsEnabled }}>
+			(function () {
+				if (!customFontsEnabled) return;
+				try {
+					var applyFontVars = function () {
+						var html = document.documentElement;
+						html.style.setProperty("--font-body", '"ZenMaruGothic-Medium"');
+						html.style.setProperty("--font-cjk", '"Loli"');
+					};
+					if ("requestIdleCallback" in window) {
+						requestIdleCallback(applyFontVars, { timeout: 2000 });
+					} else {
+						setTimeout(applyFontVars, 1000);
+					}
+				} catch (e) {}
+			})();
+		</script>
 
 		<script is:inline>
 			(function() {

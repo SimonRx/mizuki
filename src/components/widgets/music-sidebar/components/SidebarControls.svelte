@@ -43,7 +43,7 @@ const modeActive = $derived(isShuffled || repeatMode > 0);
 		class="icon-btn mode-btn"
 		class:active-mode={modeActive}
 		onclick={() => onToggleMode?.()}
-		aria-label="Repeat mode"
+		aria-label="重复模式"
 	>
 		<Icon icon={repeatIcon} class="text-xl" />
 	</button>
@@ -53,7 +53,7 @@ const modeActive = $derived(isShuffled || repeatMode > 0);
 	<button
 		class="icon-btn list-btn"
 		onclick={onTogglePlaylist}
-		aria-label="Playlist"
+		aria-label="播放列表"
 	>
 		<Icon icon="material-symbols:queue-music-rounded" />
 	</button>

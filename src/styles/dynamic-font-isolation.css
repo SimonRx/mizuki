@@ -1,0 +1,31 @@
+/* 动态区域字体隔离补丁
+ * 全站静态 Loli 子集只覆盖构建期可预测的静态字符。
+ * 评论、搜索、播放器、Pio 等动态区域的运行时内容（用户输入、API 数据）
+ * 不在字符集内，强制降级为系统字体，避免与静态区域的 Loli 混排观感不一致。
+ */
+
+/* 评论：Twikoo UGC */
+#twikoo-container,
+#tcomment {
+	font-family: var(--font-body), ui-sans-serif, system-ui, sans-serif !important;
+}
+
+/* 搜索：pagefind 结果 + 用户输入 */
+#search-panel,
+.search-panel {
+	font-family: var(--font-body), ui-sans-serif, system-ui, sans-serif !important;
+}
+
+/* 音乐播放器：Meting/local 歌单 API 数据 */
+.playlist-panel,
+.playlist-content,
+.playlist-item,
+.song-title,
+.song-artist,
+.track-list-item,
+.item-title,
+.item-artist,
+.title-text,
+.artist-text {
+	font-family: var(--font-body), ui-sans-serif, system-ui, sans-serif !important;
+}

@@ -1,15 +1,12 @@
 @import "tailwindcss";
+/* 字体切片 @font-face 已移出主样式链：
+   fonts.css 由 Layout.astro 以 ?url 方式异步注入，避免 166KB 字体声明阻塞渲染 */
 
-/* 导入相册样式 */
-@import "./albums.css";
-/* 导入追番页面样式 */
-@import "./anime.css";
 @import "./animation-enhancements.css";
-/* 导入渐变按钮样式 */
-@import "./gradient-buttons.css";
+/* 动态区域字体隔离：评论/搜索/播放器/Pio 的运行时内容强制系统字体 */
+@import "./dynamic-font-isolation.css";
 /* 加密内容样式已移除，现在直接使用非加密文章的样式 */
-
-@plugin "@tailwindcss/typography";
+/* typography plugin 已移至 src/styles/typography.css，由 Markdown 组件专用引入 */
 
 @custom-variant dark (&:where(.dark, .dark *));
 

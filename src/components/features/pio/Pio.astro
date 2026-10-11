@@ -60,13 +60,13 @@ const isRight = config.position === "right";
 
 <iframe
 	id="l2d-iframe"
-	src="/pio/live2d-host.html"
 	allowtransparency="true"
 	style={"position: fixed; z-index: 999; pointer-events: none; border: none; bottom: 0;"
 		+ (isRight ? " right: 0;" : " left: 0;")
 		+ " width: " + widgetWidth + "px;"
 		+ " height: 600px;"
 		+ " opacity: 0;"}
+	data-src="/pio/live2d-host.html"
 	data-config={JSON.stringify(widgetConfig)}
 	data-hidden-on-mobile={hiddenOnMobile ? "true" : "false"}
 	data-width={widgetWidth}
@@ -162,6 +162,34 @@ const isRight = config.position === "right";
 				}
 			}
 
+			// 懒加载 iframe：首屏不设置 src，浏览器空闲后再加载 live2d-host.html，
+			// 避免立即下载 160KB 的 l2d-widget.min.js 抢占主线程与带宽；
+			// 移动端隐藏配置下完全不加载，放大到桌面视口时再补载。
+			let frameSrcRequested = false;
+			const shouldShowPio = () =>
+				!hiddenOnMobile || window.innerWidth > PIO_MOBILE_BREAKPOINT;
+
+			const ensureFrameSrc = () => {
+				if (frameSrcRequested || !currentEl) return;
+				if (!shouldShowPio()) return;
+				frameSrcRequested = true;
+				currentEl.setAttribute("src", currentEl.dataset.src || "/pio/live2d-host.html");
+			};
+
+			const scheduleFrameSrc = () => {
+				const _window = window as Window & {
+					requestIdleCallback?: (
+						callback: IdleRequestCallback,
+						options?: IdleRequestOptions,
+					) => number;
+				};
+				if (_window.requestIdleCallback) {
+					_window.requestIdleCallback(ensureFrameSrc, { timeout: 3000 });
+				} else {
+					window.setTimeout(ensureFrameSrc, 1000);
+				}
+			};
+
 			function handleMessage(e: MessageEvent) {
 				if (!currentEl || e.source !== currentEl.contentWindow) return;
 
@@ -194,6 +222,7 @@ const isRight = config.position === "right";
 
 			window.addEventListener("message", handleMessage);
 			window.addEventListener("resize", () => {
+				ensureFrameSrc();
 				applyVisibility();
 				scheduleInit();
 			});
@@ -223,6 +252,7 @@ const isRight = config.position === "right";
 							scheduleInit();
 						});
 					}
+					ensureFrameSrc();
 					applyVisibility();
 					if (nextEl.contentDocument?.readyState === "complete") {
 						scheduleInit();
@@ -232,5 +262,6 @@ const isRight = config.position === "right";
 		}
 
 		win.__mizukiPioController.update(el, config, hiddenOnMobile);
+		scheduleFrameSrc();
 	}
 </script>

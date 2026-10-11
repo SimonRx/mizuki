@@ -1,5 +1,8 @@
 allowBuilds:
+  cn-font-split: true
   esbuild: true
+  koffi: true
+  protobufjs: true
   sharp: true
   ttf2woff2: true
 minimumReleaseAgeExclude:

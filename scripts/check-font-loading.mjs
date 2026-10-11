@@ -4,6 +4,7 @@ import { fileURLToPath } from "node:url";
 
 const projectRoot = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const distDir = resolve(projectRoot, "dist");
+const publicFontsDir = resolve(projectRoot, "public", "fonts");
 const MAX_CUSTOM_FONT_BYTES = 8 * 1024 * 1024;
 const ASTRO_ASSET_SEGMENT = "/_astro/";
 const FONT_REFERENCE_PATTERN =
@@ -97,6 +98,24 @@ if (ttfReferences.length > 0) {
 	);
 }
 
+// public/fonts 中的自托管切片/子集字体（scripts/subset-fonts.mjs 生成）
+// 通过 /fonts/ 绝对路径引用，绕过了 /_astro/ 段，因此单独扫描并计入预算。
+const publicFontFiles = [];
+try {
+	for (const file of await collectFiles(publicFontsDir)) {
+		if (/\.(?:woff2?|otf)$/i.test(file)) publicFontFiles.push(file);
+	}
+} catch (error) {
+	if (error?.code !== "ENOENT") throw error;
+}
+
+const publicTtfFiles = publicFontFiles.filter((file) => /\.ttf$/i.test(file));
+if (publicTtfFiles.length > 0) {
+	throw new Error(
+		`public/fonts must not contain TTF files:\n${publicTtfFiles.join("\n")}`,
+	);
+}
+
 const referencedFontFiles = new Map();
 for (const reference of customFontReferences) {
 	referencedFontFiles.set(reference.assetPath, reference.url);
@@ -118,6 +137,10 @@ for (const [path, url] of referencedFontFiles) {
 	}
 }
 
+for (const file of publicFontFiles) {
+	customFontBytes += (await stat(file)).size;
+}
+
 if (customFontBytes > MAX_CUSTOM_FONT_BYTES) {
 	throw new Error(
 		`Custom font output is ${customFontBytes} bytes; budget is ${MAX_CUSTOM_FONT_BYTES} bytes.`,
@@ -132,5 +155,5 @@ if (
 }
 
 console.log(
-	`Font loading check passed: ${customFontReferences.length} references, ${referencedFontFiles.size} files, ${customFontBytes} bytes.`,
+	`Font loading check passed: ${customFontReferences.length} astro references, ${referencedFontFiles.size} astro files, ${publicFontFiles.length} public font files, ${customFontBytes} bytes total.`,
 );

@@ -1,0 +1,17 @@
+/* 由 scripts/subset-fonts.mjs 生成，请勿手改。 */
+@font-face {
+  font-family: "ZenMaruGothic-Medium";
+  src: url("/fonts/zenmaru-34d7a4a2.woff2") format("woff2");
+  font-weight: 500;
+  font-style: normal;
+  font-display: optional;
+  unicode-range: U+20-7E, U+A0-FF, U+100-17F, U+2000-206F, U+3000-303F, U+3040-30FF, U+31F0-31FF, U+FF66-FF9F;
+}
+
+@font-face {
+  font-family: "Loli";
+  src: url("/fonts/loli-static-a2c3a992.woff2") format("woff2");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}

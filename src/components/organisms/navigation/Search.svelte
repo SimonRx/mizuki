@@ -253,7 +253,7 @@ onDestroy(() => {
 			? 'bg-black/4 hover:bg-black/6 focus-within:bg-black/6 dark:bg-white/5 dark:hover:bg-white/10 dark:focus-within:bg-white/10'
 			: 'btn-plain active:scale-90'}
             {isDesktopSearchExpanded ? 'w-48' : 'w-11'}"
-		aria-label="Search"
+		aria-label="搜索"
 		onmouseenter={() => {
 			if (!isDesktopSearchExpanded) {
 				toggleDesktopSearch();
@@ -298,7 +298,7 @@ onDestroy(() => {
 <!-- toggle btn for phone/tablet view -->
 <button
 	onclick={togglePanel}
-	aria-label="Search Panel"
+	aria-label="搜索面板"
 	id="search-switch"
 	class="btn-plain scale-animation lg:hidden! rounded-lg w-11 h-11 active:scale-90"
 >

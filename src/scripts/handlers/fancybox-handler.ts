@@ -10,6 +10,13 @@ import {
 } from "../core/swup-config";
 import { type FancyboxL10n, loadFancyboxL10n } from "../utils/fancybox-l10n";
 
+// 自定义覆盖样式：?url 方式引用使其不被 Astro 收集进 head 造成渲染阻塞，
+// 仅在 Fancybox 真正启用时由 loadFancybox() 注入（页面存在灯箱图片才触发）。
+import fancyboxCustomCss from "../../styles/fancybox-custom.css?url";
+// @fancyapps/ui 自带的 Fancybox 样式同样以 ?url 引用：动态 import("xxx.css") 会被
+// Astro 收集进 head 成为渲染阻塞资源，改成运行时注入后只有启用灯箱时才下载。
+import fancyboxBaseCss from "@fancyapps/ui/dist/fancybox/fancybox.css?url";
+
 // Fancybox 模块类型
 type FancyboxType = any;
 
@@ -66,7 +73,23 @@ export class FancyboxHandler {
 	private async loadFancybox(): Promise<void> {
 		const mod = await import("@fancyapps/ui");
 		this.Fancybox = mod.Fancybox;
-		await import("@fancyapps/ui/dist/fancybox/fancybox.css");
+
+		// 运行时注入 Fancybox 基础样式与自定义覆盖样式（只注入一次），
+		// 避免无灯箱图片的页面也下载这些 CSS
+		if (!document.head.querySelector("link[data-fancybox-css]")) {
+			const base = document.createElement("link");
+			base.rel = "stylesheet";
+			base.href = fancyboxBaseCss;
+			base.setAttribute("data-fancybox-css", "true");
+			document.head.appendChild(base);
+
+			const custom = document.createElement("link");
+			custom.rel = "stylesheet";
+			custom.href = fancyboxCustomCss;
+			custom.setAttribute("data-fancybox-custom-css", "true");
+			document.head.appendChild(custom);
+		}
+
 		this.l10n = await loadFancyboxL10n();
 	}
 
