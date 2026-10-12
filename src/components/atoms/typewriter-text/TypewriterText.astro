@@ -156,7 +156,11 @@ const textData = Array.isArray(text) ? JSON.stringify(text) : text;
 	});
 
 	// 支持页面切换时重新初始化
-	document.addEventListener("swup:contentReplaced", () => {
+	// Swup 4 对 content:replace 钩子派发的 DOM 事件名为 swup:content:replace（冒号分隔），
+	// 旧代码误用 swup:contentReplaced（驼峰）导致切页后从不重新初始化；
+	// banner-wrapper 纳入 Swup 替换容器后，切页时容器整体替换、打字机元素被重建，
+	// 必须依赖此事件对新元素重新初始化。
+	document.addEventListener("swup:content:replace", () => {
 		const typewriterElements = document.querySelectorAll(".typewriter");
 		typewriterElements.forEach((element) => {
 			new TypewriterEffect(element as HTMLElement);

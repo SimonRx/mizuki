@@ -88,9 +88,13 @@ export default defineConfig({
 		swup({
 			theme: false,
 			animationClass: "transition-swup-",
-			containers: ["main"],
+			containers: ["main", "#banner-wrapper"],
 			smoothScrolling: false, // 禁用平滑滚动以提升性能，避免与锚点导航冲突
 			cache: true,
+			// 提前初始化：默认 loadOnIdle 会等 window.load + 空闲回调才动态加载 Swup，
+			// 期间点击内链会回退为 MPA 整页刷新（冷缓存/慢网下窗口可达秒级）。
+			// 关闭后 Swup 随模块脚本在 HTML 解析后立即初始化，消除回退窗口。
+			loadOnIdle: false,
 			preload: false, // 禁用预加载以提升性能
 			accessibility: true,
 			updateHead: process.env.NODE_ENV === "production",

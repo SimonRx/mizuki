@@ -255,7 +255,10 @@ const bannerFormats = getImageFormats();
 	)}
 
 	<!-- 轮播脚本：首帧复用 + Ken Burns + Crossfade + 触摸/鼠标事件 -->
-	<script is:inline data-swup-ignore-script>
+	<!-- 注意：banner-wrapper 已纳入 Swup 替换容器（astro.config.mjs containers），
+	     切页时该容器随页面整体替换，脚本会随新页面重新执行（不再使用 data-swup-ignore-script），
+	     通过 window.__bannerCarouselCleanup 清理上一次导航遗留的监听器与定时器 -->
+	<script is:inline>
 			(function initBannerCarousel() {
 				var container = document.getElementById('banner-carousel');
 				if (!container) return;
@@ -301,7 +304,9 @@ const bannerFormats = getImageFormats();
 				if (!window.__bannerCarouselFrames) window.__bannerCarouselFrames = {};
 
 				function collectFrames(slotClass, tplClass) {
-					if (window.__bannerCarouselFrames[slotClass]) return;
+					// 仅跳过非空缓存：若此前在非首页（无移动槽位）收集到空帧数组，
+					// 切页到首页后需重新收集，避免移动轮播帧永久为空导致切页后轮播失效
+					if (window.__bannerCarouselFrames[slotClass] && window.__bannerCarouselFrames[slotClass].length > 0) return;
 					var frames = [];
 					var initialFrame = window.__bannerInitialFrameHtml && window.__bannerInitialFrameHtml[slotClass];
 					var slot = container.querySelector('.' + slotClass);
