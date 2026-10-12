@@ -144,16 +144,6 @@ html.is-animating .transition-swup-fade {
   transform: translateX(0);
 }
 
-/* 性能优化 */
-.transition-main,
-.transition-leaving,
-.onload-animation,
-.transition-slide-in,
-.card-animation {
-  transform: translateZ(0);
-  will-change: transform;
-}
-
 /* GPU 加速优化 - 用于 wave 等重型动画 */
 .gpu-accelerated {
   transform: translateZ(0);
@@ -196,18 +186,6 @@ html.is-animating .transition-swup-fade {
 .is-theme-transitioning .sakura-canvas,
 .is-theme-transitioning .animation-element {
   animation-play-state: paused !important;
-}
-
-/* 移动端性能优化 */
-@media (width < 768px) {
-  .transition-main,
-  .transition-leaving,
-  .onload-animation,
-  .transition-slide-in,
-  .card-animation {
-    -webkit-transform: translateZ(0);
-    transform: translateZ(0);
-  }
 }
 
 /* 减少动画的用户偏好设置 */

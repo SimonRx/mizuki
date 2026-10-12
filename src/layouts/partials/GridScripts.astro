@@ -329,11 +329,6 @@ const {
 		);
 		const tocWrapper = document.getElementById("toc-wrapper");
 
-		// 强制重排以确保样式正确应用
-		const forceReflow = function () {
-			void document.body.offsetHeight;
-		};
-
 		applyWallpaperVisualSettings(wallpaperMode);
 		syncMainContentPosition(wallpaperMode);
 
@@ -359,8 +354,6 @@ const {
 				body.classList.remove("wallpaper-transparent");
 				body.classList.remove("fullscreen-banner");
 				body.classList.remove("no-banner-mode");
-				// 强制重排
-				forceReflow();
 				// 移除内联样式，让CSS完全接管
 				if (mainContent) {
 					mainContent.style.removeProperty("top");
@@ -383,8 +376,6 @@ const {
 						window.initSemifullScrollDetection();
 					}
 				}
-				// 强制重排以确保CSS变量正确更新
-				forceReflow();
 				break;
 
 			case "fullscreen":
@@ -404,7 +395,6 @@ const {
 				}
 				body.classList.remove("wallpaper-transparent");
 				body.classList.remove("no-banner-mode");
-				forceReflow();
 				body.classList.add("enable-banner");
 				body.classList.add("fullscreen-banner");
 				if (navbar) {
@@ -420,7 +410,6 @@ const {
 						window.initSemifullScrollDetection();
 					}
 				}
-				forceReflow();
 				break;
 
 			case "overlay":
@@ -435,7 +424,6 @@ const {
 				}
 				body.classList.remove("enable-banner");
 				body.classList.remove("fullscreen-banner");
-				forceReflow();
 				if (mainContent) {
 					mainContent.style.removeProperty("top");
 				}
@@ -445,7 +433,6 @@ const {
 					navbar.setAttribute("data-dynamic-transparent", "semi");
 					navbar.removeAttribute("data-transparent-mode");
 				}
-				forceReflow();
 				break;
 
 			case "none":
@@ -464,8 +451,6 @@ const {
 				body.classList.remove("enable-banner");
 				body.classList.remove("wallpaper-transparent");
 				body.classList.remove("fullscreen-banner");
-				// 强制重排
-				forceReflow();
 				// 移除内联样式，让CSS完全接管
 				if (mainContent) {
 					mainContent.style.removeProperty("top");
@@ -478,11 +463,9 @@ const {
 					// 强制移除 config 中的 data-transparent-mode 影响
 					navbar.removeAttribute("data-transparent-mode");
 				}
-				// 强制重排以确保CSS变量正确更新
-				forceReflow();
 				break;
+			}
 		}
-	}
 
 	// 监听壁纸模式变化，立即应用（不重载页面）
 	window.addEventListener("wallpaper-mode-change", function (_event) {
