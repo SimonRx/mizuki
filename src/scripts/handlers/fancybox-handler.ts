@@ -44,6 +44,11 @@ export class FancyboxHandler {
 		// 按需加载 Fancybox 模块及语言包
 		if (!this.Fancybox) {
 			await this.loadFancybox();
+		} else {
+			// SwupHeadPlugin（updateHead）切页时会删除运行时注入的样式 <link>
+			// （其 isPersistentTag 不检查 data-swup-persist），且不会自动补注；
+			// 本方法在每次 content:replace 后调用，此处负责补注缺失的样式
+			this.injectStyles();
 		}
 
 		// 避免重复初始化
@@ -74,23 +79,31 @@ export class FancyboxHandler {
 		const mod = await import("@fancyapps/ui");
 		this.Fancybox = mod.Fancybox;
 
-		// 运行时注入 Fancybox 基础样式与自定义覆盖样式（只注入一次），
-		// 避免无灯箱图片的页面也下载这些 CSS
-		if (!document.head.querySelector("link[data-fancybox-css]")) {
-			const base = document.createElement("link");
-			base.rel = "stylesheet";
-			base.href = fancyboxBaseCss;
-			base.setAttribute("data-fancybox-css", "true");
-			document.head.appendChild(base);
-
-			const custom = document.createElement("link");
-			custom.rel = "stylesheet";
-			custom.href = fancyboxCustomCss;
-			custom.setAttribute("data-fancybox-custom-css", "true");
-			document.head.appendChild(custom);
-		}
+		this.injectStyles();
 
 		this.l10n = await loadFancyboxL10n();
+	}
+
+	/**
+	 * 注入 Fancybox 基础样式与自定义覆盖样式（幂等）。
+	 * 避免无灯箱图片的页面也下载这些 CSS；Swup 切页删除后可再次调用补注
+	 */
+	private injectStyles(): void {
+		if (document.head.querySelector("link[data-fancybox-css]")) {
+			return;
+		}
+
+		const base = document.createElement("link");
+		base.rel = "stylesheet";
+		base.href = fancyboxBaseCss;
+		base.setAttribute("data-fancybox-css", "true");
+		document.head.appendChild(base);
+
+		const custom = document.createElement("link");
+		custom.rel = "stylesheet";
+		custom.href = fancyboxCustomCss;
+		custom.setAttribute("data-fancybox-custom-css", "true");
+		document.head.appendChild(custom);
 	}
 
 	/**

@@ -13,9 +13,6 @@ import katexCssUrl from "katex/dist/katex.css?url";
  * 负责自定义滚动条初始化和滚动事件管理
  */
 export class ScrollHandler {
-	private katexScrollbarStyleAdded = false;
-	private katexCssInjected = false;
-
 	/**
 	 * 初始化自定义滚动条
 	 * 为 KaTeX 公式添加水平滚动支持
@@ -50,10 +47,12 @@ export class ScrollHandler {
 	}
 
 	/**
-	 * 添加 KaTeX 滚动条样式（只添加一次）
+	 * 添加 KaTeX 滚动条样式（幂等）
+	 * 以 head 中 style 是否存在为准：SwupHeadPlugin（updateHead）切页时
+	 * 会删除运行时注入的 <style>，删除后需可再次补注，不能用一次性布尔标志
 	 */
 	private addKatexScrollbarStyle(): void {
-		if (this.katexScrollbarStyleAdded) {
+		if (document.head.querySelector("style[data-katex-scrollbar]")) {
 			return;
 		}
 
@@ -74,23 +73,22 @@ export class ScrollHandler {
 			}
 		`;
 
-		if (!document.head.querySelector("style[data-katex-scrollbar]")) {
-			style.setAttribute("data-katex-scrollbar", "true");
-			document.head.appendChild(style);
-			this.katexScrollbarStyleAdded = true;
-		}
+		style.setAttribute("data-katex-scrollbar", "true");
+		document.head.appendChild(style);
 	}
 
 	/**
 	 * 检查并加载 KaTeX 样式
 	 * 仅在页面存在 .katex 公式元素时，才将样式注入 head，
-	 * 避免无公式页面也下载 katex.css（构建期不再被 Astro 收集为渲染阻塞资源）
+	 * 避免无公式页面也下载 katex.css（构建期不再被 Astro 收集为渲染阻塞资源）。
+	 * 以 head 中 link 是否存在为准（幂等）：SwupHeadPlugin（updateHead）切页时
+	 * 会删除运行时注入的 <link>，删除后需在此补注，故不能用一次性布尔标志
 	 */
 	checkKatex(): void {
-		if (this.katexCssInjected) {
+		if (!document.querySelector(".katex")) {
 			return;
 		}
-		if (!document.querySelector(".katex")) {
+		if (document.head.querySelector("link[data-katex-css]")) {
 			return;
 		}
 		const link = document.createElement("link");
@@ -98,7 +96,6 @@ export class ScrollHandler {
 		link.href = katexCssUrl;
 		link.setAttribute("data-katex-css", "true");
 		document.head.appendChild(link);
-		this.katexCssInjected = true;
 	}
 
 	/**
