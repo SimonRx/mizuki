@@ -96,6 +96,56 @@ const server = createServer((req, res) => {
 	}
 
 	const ext = extname(file).toLowerCase();
+	const size = statSync(file).size;
+	const baseHeaders = {
+		"Content-Type": MIME[ext] || "application/octet-stream",
+		"Cache-Control": cacheControl(pathname),
+		"Accept-Ranges": "bytes",
+	};
+	// 音频/视频等媒体元素依赖 Range 请求才能拖动进度条跳转，
+	// 必须返回 206 + Content-Range，否则浏览器无法 seek（点击进度条会回到开头）
+	const rangeHeader = req.headers.range;
+
+	if (req.method === "HEAD") {
+		res.writeHead(200, { ...baseHeaders, "Content-Length": size });
+		res.end();
+		return;
+	}
+
+	if (rangeHeader) {
+		const match = /^bytes=(\d*)-(\d*)$/.exec(rangeHeader.trim());
+		if (match) {
+			let start;
+			let end;
+			if (match[1] === "") {
+				// 后缀范围：bytes=-N → 最后 N 字节
+				start = Math.max(0, size - Number(match[2] || 0));
+				end = size - 1;
+			} else {
+				start = Number(match[1]);
+				end = match[2] === "" ? size - 1 : Number(match[2]);
+			}
+			if (Number.isNaN(start) || Number.isNaN(end) || start >= size) {
+				res.writeHead(416, {
+					"Content-Range": `bytes */${size}`,
+					"Accept-Ranges": "bytes",
+				});
+				res.end();
+				return;
+			}
+			end = Math.min(end, size - 1);
+			if (start <= end) {
+				res.writeHead(206, {
+					...baseHeaders,
+					"Content-Range": `bytes ${start}-${end}/${size}`,
+					"Content-Length": end - start + 1,
+				});
+				createReadStream(file, { start, end }).pipe(res);
+				return;
+			}
+		}
+	}
+
 	const acceptsGzip = GZIP_ENABLED && (req.headers["accept-encoding"] || "").includes("gzip");
 	if (acceptsGzip && COMPRESSIBLE_EXT.has(ext)) {
 		res.writeHead(200, {
@@ -107,10 +157,7 @@ const server = createServer((req, res) => {
 		createReadStream(file).pipe(createGzip()).pipe(res);
 		return;
 	}
-	res.writeHead(200, {
-		"Content-Type": MIME[ext] || "application/octet-stream",
-		"Cache-Control": cacheControl(pathname),
-	});
+	res.writeHead(200, { ...baseHeaders, "Content-Length": size });
 	createReadStream(file).pipe(res);
 });
 
