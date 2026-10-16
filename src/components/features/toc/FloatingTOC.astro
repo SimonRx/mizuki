@@ -206,6 +206,11 @@ const useJapaneseBadge = siteConfig.toc.useJapaneseBadge;
 	class FloatingTOC {
 		state: FloatingTOCState;
 		navbarOffset = 80;
+		// MutationObserver 回调的防抖定时器
+		debounceTimer: number | null = null;
+		// 上一次生成目录时的标题集合签名及其对应的目录内容容器
+		lastHeadingSignature: string | null = null;
+		signatureContentEl: HTMLElement | null = null;
 
 		constructor() {
 			this.state = {
@@ -237,7 +242,14 @@ const useJapaneseBadge = siteConfig.toc.useJapaneseBadge;
 			const contentWrapper = document.getElementById("post-container");
 			if (contentWrapper) {
 				this.state.observer = new MutationObserver(() => {
-					this.generateTOC();
+					// 150ms 防抖：合并同一批 DOM 变更，避免频繁触发目录重建
+					if (this.debounceTimer !== null) {
+						clearTimeout(this.debounceTimer);
+					}
+					this.debounceTimer = window.setTimeout(() => {
+						this.debounceTimer = null;
+						this.generateTOC();
+					}, 150);
 				});
 				this.state.observer.observe(contentWrapper, {
 					childList: true,
@@ -259,23 +271,26 @@ const useJapaneseBadge = siteConfig.toc.useJapaneseBadge;
 				content.querySelectorAll(".floating-toc-item"),
 			) as HTMLAnchorElement[];
 
+			// 读取阶段：一次性读取内容容器与所有目录项的位置，消除读写交替
+			const panelRect = content.getBoundingClientRect();
+			const linkRects = links.map((link) => link.getBoundingClientRect());
+
+			// 写入阶段：统一更新 active 高亮
 			links.forEach((link, index) => {
-				if (index === activeIndex) {
-					link.classList.add("active");
-					if (this.state.isOpen) {
-						const panelRect = content.getBoundingClientRect();
-						const linkRect = link.getBoundingClientRect();
-						if (
-							linkRect.top < panelRect.top ||
-							linkRect.bottom > panelRect.bottom
-						) {
-							link.scrollIntoView({ block: "nearest" });
-						}
-					}
-				} else {
-					link.classList.remove("active");
-				}
+				link.classList.toggle("active", index === activeIndex);
 			});
+
+			// 写入阶段：活动项超出面板可视区域时再统一触发滚动
+			if (activeIndex >= 0 && this.state.isOpen) {
+				const activeLink = links[activeIndex];
+				const activeRect = linkRects[activeIndex];
+				if (
+					activeRect.top < panelRect.top ||
+					activeRect.bottom > panelRect.bottom
+				) {
+					activeLink.scrollIntoView({ block: "nearest" });
+				}
+			}
 		}
 
 		generateTOC() {
@@ -286,6 +301,9 @@ const useJapaneseBadge = siteConfig.toc.useJapaneseBadge;
 				wrapper?.classList.remove("active-toc");
 				wrapper?.classList.add("no-toc");
 				btn?.classList.add("hide");
+				// 内容容器缺失时重置签名，确保后续容器出现时必然重建
+				this.lastHeadingSignature = null;
+				this.signatureContentEl = null;
 				return;
 			}
 
@@ -298,6 +316,26 @@ const useJapaneseBadge = siteConfig.toc.useJapaneseBadge;
 				wrapper?.classList.add("no-toc");
 				btn?.classList.add("hide");
 				this.state.headings = [];
+				// 标题清空时重置签名，确保标题重新出现时必然重建
+				this.lastHeadingSignature = null;
+				this.signatureContentEl = null;
+				return;
+			}
+
+			const headings = Array.from(allHeadings) as HTMLElement[];
+
+			// 标题集合签名比对：由每个标题的 id + 标签名 + 文本拼接而成
+			// 标题未变化且目录内容容器未更换时直接返回，绝不重建 TOC、不读取标题 rect
+			const signature = headings
+				.map((h) => {
+					const text = (h.textContent || "").replace(/#+\s*$/, "").trim();
+					return `${h.id}\u0000${h.tagName}\u0000${text}\u0001`;
+				})
+				.join("");
+			if (
+				this.lastHeadingSignature === signature &&
+				this.signatureContentEl === this.state.content
+			) {
 				return;
 			}
 
@@ -305,7 +343,6 @@ const useJapaneseBadge = siteConfig.toc.useJapaneseBadge;
 			wrapper?.classList.add("active-toc");
 			btn?.classList.remove("hide");
 
-			const headings = Array.from(allHeadings) as HTMLElement[];
 			const config = getTOCConfig();
 			const tocItems = generateTOCItems(
 				headings.map((h) => ({
@@ -337,6 +374,9 @@ const useJapaneseBadge = siteConfig.toc.useJapaneseBadge;
 			if (this.state.content) {
 				this.state.content.innerHTML = html;
 			}
+			// 记录本次签名，供后续比对
+			this.lastHeadingSignature = signature;
+			this.signatureContentEl = this.state.content;
 			this.updateActiveHeading();
 		}
 
@@ -395,6 +435,13 @@ const useJapaneseBadge = siteConfig.toc.useJapaneseBadge;
 			if (this.state.observer) {
 				this.state.observer.disconnect();
 			}
+			if (this.debounceTimer !== null) {
+				clearTimeout(this.debounceTimer);
+				this.debounceTimer = null;
+			}
+			// 页面切换后目录内容容器可能已更换，强制下一次重建
+			this.lastHeadingSignature = null;
+			this.signatureContentEl = null;
 			this.close();
 			this.state.btn = document.getElementById("floating-toc-btn");
 			this.state.panel = document.getElementById("floating-toc-panel");

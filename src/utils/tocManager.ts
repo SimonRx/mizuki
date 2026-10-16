@@ -27,6 +27,10 @@ export class TOCManager {
 	private scrollOffset: number;
 	private useJapaneseBadge: boolean;
 	private boundClickHandler: ((event: Event) => void) | null = null;
+	// 逐项 visible 类的上次应用状态，用于差量更新（避免每次滚动 N 次逐个写）
+	private visibleMask: boolean[] | null = null;
+	// 容器级高亮开关的当前状态
+	private hasActiveClass = false;
 
 	constructor(config: TOCConfig) {
 		this.contentId = config.contentId ?? null;
@@ -205,8 +209,9 @@ export class TOCManager {
       `;
 		});
 
+		// 指示器不再内联 opacity：显隐改由容器级 class 驱动（见 toc.css .toc-has-active）
 		tocHTML +=
-			'<div data-card-toc-indicator style="opacity: 0;" class="toc-active-indicator"></div>';
+			'<div data-card-toc-indicator class="toc-active-indicator"></div>';
 
 		return tocHTML;
 	}
@@ -219,35 +224,40 @@ export class TOCManager {
 
 		tocContent.innerHTML = this.generateTOCHTML();
 		this.tocItems = Array.from(tocContent.querySelectorAll("a"));
+		// 内容重建后逐项状态与指示器均是新的，重置差量缓存以便下次全量建立
+		this.visibleMask = null;
 	}
 
-	private getVisibleHeadingIds(): string[] {
-		const headings = this.getAllHeadings();
+	/**
+	 * 根据预先一次性读取好的标题位置计算可见标题 id。
+	 * 位置信息由调用方在读取阶段传入，避免在比较过程中再次读取 rect。
+	 */
+	private getVisibleHeadingIds(
+		headingInfos: { id: string; rect: DOMRect }[],
+	): string[] {
 		const visibleHeadingIds: string[] = [];
 
-		headings.forEach((heading) => {
-			if (heading.id) {
-				const rect = heading.getBoundingClientRect();
+		headingInfos.forEach(({ id, rect }) => {
+			if (id) {
 				const isVisible = rect.top < window.innerHeight && rect.bottom > 0;
 
 				if (isVisible) {
-					visibleHeadingIds.push(heading.id);
+					visibleHeadingIds.push(id);
 				}
 			}
 		});
 
-		if (visibleHeadingIds.length === 0 && headings.length > 0) {
+		if (visibleHeadingIds.length === 0 && headingInfos.length > 0) {
 			let closestHeading: string | null = null;
 			let minDistance = Number.POSITIVE_INFINITY;
 
-			headings.forEach((heading) => {
-				if (heading.id) {
-					const rect = heading.getBoundingClientRect();
+			headingInfos.forEach(({ id, rect }) => {
+				if (id) {
 					const distance = Math.abs(rect.top);
 
 					if (distance < minDistance) {
 						minDistance = distance;
-						closestHeading = heading.id;
+						closestHeading = id;
 					}
 				}
 			});
@@ -265,57 +275,100 @@ export class TOCManager {
 			return;
 		}
 
-		this.tocItems.forEach((item) => {
-			item.classList.remove("visible");
-		});
+		// 读取阶段：一次性读取所有标题与所有目录项的位置，写入阶段不再读 rect
+		const headings = this.getAllHeadings();
+		const headingInfos = headings.map((heading) => ({
+			id: heading.id,
+			rect: heading.getBoundingClientRect(),
+		}));
+		const tocContent = this.getTOCContentElement();
+		const contentRect = tocContent ? tocContent.getBoundingClientRect() : null;
+		const indicator = this.getIndicatorElement();
+		const itemRects = this.tocItems.map((item) => item.getBoundingClientRect());
 
-		const visibleHeadingIds = this.getVisibleHeadingIds();
+		const visibleHeadingIds = this.getVisibleHeadingIds(headingInfos);
 
-		const activeItems = this.tocItems.filter((item) => {
+		// 目标可见集合用布尔掩码表示，供差量合并使用
+		const desiredVisible = new Array(this.tocItems.length).fill(
+			false,
+		) as boolean[];
+		this.tocItems.forEach((item, index) => {
 			const headingId = item.dataset.headingId;
-			return headingId && visibleHeadingIds.includes(headingId);
+			if (headingId && visibleHeadingIds.includes(headingId)) {
+				desiredVisible[index] = true;
+			}
 		});
 
-		activeItems.forEach((item) => {
-			item.classList.add("visible");
-		});
+		// 写入阶段：差量合并 visible 类——只写状态发生变化的那几项，集合不变时零写入
+		if (!this.visibleMask || this.visibleMask.length !== this.tocItems.length) {
+			this.visibleMask = new Array(this.tocItems.length).fill(
+				false,
+			) as boolean[];
+		}
+		for (let i = 0; i < this.tocItems.length; i++) {
+			if (desiredVisible[i] !== this.visibleMask[i]) {
+				this.tocItems[i].classList.toggle("visible", desiredVisible[i]);
+				this.visibleMask[i] = desiredVisible[i];
+			}
+		}
 
-		this.updateActiveIndicator(activeItems);
+		// 写入阶段：容器级高亮开关——一次 class 切换驱动指示器显隐，仅状态变化时写
+		const hasActive = desiredVisible.includes(true);
+		if (tocContent && hasActive !== this.hasActiveClass) {
+			tocContent.classList.toggle("toc-has-active", hasActive);
+			this.hasActiveClass = hasActive;
+		}
+
+		// 写入阶段：统一下发已缓存的 rect，避免写 class 后立刻读 rect
+		this.updateActiveIndicator(
+			indicator,
+			desiredVisible,
+			itemRects,
+			contentRect,
+		);
 	}
 
-	private updateActiveIndicator(activeItems: HTMLElement[]): void {
-		const indicator = this.getIndicatorElement();
+	private updateActiveIndicator(
+		indicator: HTMLElement | null,
+		visibleMask: boolean[],
+		itemRects: DOMRect[],
+		contentRect: DOMRect | null,
+	): void {
 		if (!indicator || !this.tocItems.length) {
 			return;
 		}
 
-		if (activeItems.length === 0) {
-			indicator.style.opacity = "0";
+		// 从掩码中取首个/末个可见项（活动集合在设计上是连续的）
+		let firstIndex = -1;
+		let lastIndex = -1;
+		for (let i = 0; i < visibleMask.length; i++) {
+			if (visibleMask[i]) {
+				if (firstIndex < 0) {
+					firstIndex = i;
+				}
+				lastIndex = i;
+			}
+		}
+
+		// 无活动项时指示器由容器级 class 隐藏，这里无需写任何样式
+		if (firstIndex < 0 || !contentRect) {
 			return;
 		}
 
-		const tocContent = this.getTOCContentElement();
-		if (!tocContent) {
+		const firstRect = itemRects[firstIndex];
+		const lastRect = itemRects[lastIndex];
+		if (!firstRect || !lastRect || firstRect.height <= 0) {
 			return;
 		}
 
-		const contentRect = tocContent.getBoundingClientRect();
-		const firstActive = activeItems[0];
-		const lastActive = activeItems[activeItems.length - 1];
-
-		const firstRect = firstActive.getBoundingClientRect();
-		const lastRect = lastActive.getBoundingClientRect();
-
+		// 写入阶段：位置继续走合成属性 translateY（无失真），高度改回动态 height
 		const top = firstRect.top - contentRect.top;
 		const height = lastRect.bottom - firstRect.top;
 
-		indicator.style.top = `${top}px`;
+		indicator.style.transform = `translateY(${top}px)`;
 		indicator.style.height = `${height}px`;
-		indicator.style.opacity = "1";
 
-		if (firstActive) {
-			this.scrollToActiveItem(firstActive);
-		}
+		this.scrollToActiveItem(this.tocItems[firstIndex]);
 	}
 
 	private scrollToActiveItem(activeItem: HTMLElement): void {
@@ -333,26 +386,28 @@ export class TOCManager {
 		}
 
 		this.scrollTimeout = window.setTimeout(() => {
+			// 读取阶段：一次性读取容器与目标项的位置/尺寸
 			const containerRect = tocContainer.getBoundingClientRect();
 			const itemRect = activeItem.getBoundingClientRect();
+			const itemOffsetTop = (activeItem as HTMLElement).offsetTop;
+			const containerHeight = tocContainer.clientHeight;
+			const itemHeight = activeItem.clientHeight;
 
 			const isVisible =
 				itemRect.top >= containerRect.top &&
 				itemRect.bottom <= containerRect.bottom;
 
-			if (!isVisible) {
-				const itemOffsetTop = (activeItem as HTMLElement).offsetTop;
-				const containerHeight = tocContainer.clientHeight;
-				const itemHeight = activeItem.clientHeight;
-
-				const targetScroll =
-					itemOffsetTop - containerHeight / 2 + itemHeight / 2;
-
-				tocContainer.scrollTo({
-					top: targetScroll,
-					behavior: "smooth",
-				});
+			if (isVisible) {
+				return;
 			}
+
+			// 写入阶段：滚动容器
+			const targetScroll = itemOffsetTop - containerHeight / 2 + itemHeight / 2;
+
+			tocContainer.scrollTo({
+				top: targetScroll,
+				behavior: "smooth",
+			});
 		}, 100);
 	}
 

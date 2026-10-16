@@ -31,10 +31,7 @@ const { class: className } = Astro.props;
 		isInRange,
 	} from "./hooks/useTocHighlight";
 
-	import {
-		throttle,
-		calculateActiveIndicatorPosition,
-	} from "./hooks/useTocScroll";
+	import { throttle } from "./hooks/useTocScroll";
 
 	class TableOfContents extends HTMLElement {
 		tocEl: HTMLElement | null = null;
@@ -49,6 +46,10 @@ const { class: className } = Astro.props;
 		active: boolean[] = [];
 		activeIndicator: HTMLElement | null = null;
 		navbarHeight = 80;
+		// 逐项 visible 类的上次应用状态，用于差量更新（避免每次滚动 N 次逐个写）
+		appliedMask: boolean[] = [];
+		// 容器级高亮开关的当前状态
+		hasActiveClass = false;
 
 		constructor() {
 			super();
@@ -85,31 +86,48 @@ const { class: className } = Astro.props;
 
 		toggleActiveHeading = () => {
 			const { min, max } = calculateActiveHeadingRange(this.active);
+			const tocEl = this.tocEl;
+			const hasActive =
+				min <= max && !!this.tocEntries[min] && !!this.tocEntries[max] && !!tocEl;
 
-			this.tocEntries.forEach((entry, i) => {
-				if (this.active[i]) {
-					entry.classList.add(this.visibleClass);
-				} else {
-					entry.classList.remove(this.visibleClass);
-				}
-			});
+			// 读取阶段：先一次性读取容器与首/末活动项的位置，之后统一写入
+			let top = 0;
+			let range = 0;
+			if (hasActive && tocEl) {
+				const containerRect = tocEl.getBoundingClientRect();
+				const minRect = this.tocEntries[min].getBoundingClientRect();
+				const maxRect = this.tocEntries[max].getBoundingClientRect();
+				// top 用内容坐标（含容器自身滚动量），与指示器随内容滚动的特性一致
+				top = minRect.top - containerRect.top + tocEl.scrollTop;
+				range = maxRect.bottom - minRect.top;
+			}
 
-			if (min > max) {
-				this.activeIndicator?.setAttribute("style", "opacity: 0");
-			} else {
-				const minEntry = this.tocEntries[min];
-				const maxEntry = this.tocEntries[max];
-				if (minEntry && maxEntry && this.tocEl) {
-					const { top, height } = calculateActiveIndicatorPosition(
-						this.tocEl,
-						minEntry,
-						maxEntry,
-					);
-					this.activeIndicator?.setAttribute(
-						"style",
-						`top: ${top}px; height: ${height}px`,
-					);
+			// 写入阶段：差量合并 visible 类——只写状态变化的那几项，集合不变时零写入
+			if (this.appliedMask.length !== this.tocEntries.length) {
+				this.appliedMask = new Array(this.tocEntries.length).fill(false);
+			}
+			for (let i = 0; i < this.tocEntries.length; i++) {
+				const desired = this.active[i] === true;
+				if (desired !== this.appliedMask[i]) {
+					if (desired) {
+						this.tocEntries[i].classList.add(this.visibleClass);
+					} else {
+						this.tocEntries[i].classList.remove(this.visibleClass);
+					}
+					this.appliedMask[i] = desired;
 				}
+			}
+
+			// 写入阶段：容器级高亮开关——一次 class 切换驱动指示器显隐
+			if (hasActive !== this.hasActiveClass) {
+				this.classList.toggle("has-active", hasActive);
+				this.hasActiveClass = hasActive;
+			}
+
+			// 写入阶段：位置走合成属性 translateY（无失真），高度改回动态 height
+			if (hasActive && range > 0 && this.activeIndicator) {
+				this.activeIndicator.style.transform = `translateY(${top}px)`;
+				this.activeIndicator.style.height = `${range}px`;
 			}
 		};
 
@@ -324,8 +342,12 @@ const { class: className } = Astro.props;
 
 			this.innerHTML =
 				tocHTML +
-				'<div id="active-indicator" style="opacity: 0" class="-z-10 absolute bg-[var(--toc-btn-hover)] left-0 right-0 rounded-xl transition-all group-hover:bg-transparent border-2 border-[var(--toc-btn-hover)] group-hover:border-[var(--toc-btn-active)] border-dashed"></div>';
+				'<div id="active-indicator" class="-z-10 absolute bg-[var(--toc-btn-hover)] left-0 right-0 rounded-xl transition-all group-hover:bg-transparent border-2 border-[var(--toc-btn-hover)] group-hover:border-[var(--toc-btn-active)] border-dashed"></div>';
 			this.dataset.loaded = "true";
+			// 内容重建后逐项与指示器状态失效：重置差量缓存并清除容器高亮开关
+			this.appliedMask = [];
+			this.hasActiveClass = false;
+			this.classList.remove("has-active");
 		}
 
 		disconnectedCallback() {
@@ -353,5 +375,23 @@ const { class: className } = Astro.props;
 
 	table-of-contents#toc::-webkit-scrollbar {
 		display: none;
+	}
+
+	/* 活动指示器：位置走合成属性 translateY，高度用动态 height
+	   （避免 scaleY 把 2px dashed 边框/圆角拉伸失真）；元素由 JS 动态生成，故用 :global */
+	:global(#active-indicator) {
+		top: 0;
+		opacity: 0;
+		transition:
+			transform 0.18s ease,
+			height 0.18s ease,
+			opacity 0.14s ease,
+			background-color 0.14s ease,
+			border-color 0.14s ease;
+	}
+
+	/* 容器级高亮开关：一次 class 切换即可驱动指示器显隐 */
+	:global(table-of-contents.has-active #active-indicator) {
+		opacity: 1;
 	}
 </style>

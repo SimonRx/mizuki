@@ -120,21 +120,30 @@
   background: var(--primary);
 }
 
-/* 活动指示器基础样式 */
+/* 活动指示器基础样式
+   位置走合成属性 translateY；高度用动态 height（单元素局部 layout，
+   换取 2px dashed 边框/圆角不被 scaleY 拉伸失真） */
 .toc-active-indicator {
   position: absolute;
+  top: 0;
   left: 0;
   right: 0;
+  opacity: 0;
   background: var(--toc-btn-hover);
   border-radius: 0.75rem;
   border: 2px dashed var(--toc-btn-hover);
   transition:
-    top 0.18s ease,
+    transform 0.18s ease,
     height 0.18s ease,
     opacity 0.14s ease,
     background 0.14s ease,
     border-color 0.14s ease;
   z-index: -1;
+}
+
+/* 容器级高亮开关：一次 class 切换即可驱动指示器显隐 */
+.toc-content.toc-has-active .toc-active-indicator {
+  opacity: 1;
 }
 
 .group:hover .toc-active-indicator {
