@@ -100,7 +100,14 @@ body.wallpaper-transparent #navbar[data-transparent-mode="semifull"].scrolled {
 
   /* 性能优化 */
   will-change: background, backdrop-filter, box-shadow;
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  /* 收敛 transition:all 为非布局属性白名单（排除 width/height/top/left/margin/padding 等布局属性，
+     避免其过渡逐帧触发全页 Layout 重排）。本文件在 mobile-navbar.css 之后导入，同特异性下此处声明实际生效 */
+  transition:
+    background 0.3s cubic-bezier(0.4, 0, 0.2, 1),
+    backdrop-filter 0.3s cubic-bezier(0.4, 0, 0.2, 1),
+    box-shadow 0.3s cubic-bezier(0.4, 0, 0.2, 1),
+    opacity 0.3s cubic-bezier(0.4, 0, 0.2, 1),
+    transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 /* 子组件样式 (Sub-Components)
@@ -139,11 +146,14 @@ body.wallpaper-transparent #navbar[data-transparent-mode="semifull"].scrolled {
     max-width: none;
   }
 
-  /* 搜索框内部颜色处理 */
-  body:has(#navbar[data-dynamic-transparent="none"]) #search-panel #search-bar-inside {
+  /* 搜索框内部颜色处理
+     去掉 BODY 锚点的 :has() 以消除全文档失效重算：条件（data-dynamic-transparent="none"）保留，
+     改由 #navbar[attr] 直接作祖先匹配（#search-panel 确为 #navbar 后代）。
+     特异性 (3,1,1)→(3,1,0)，仍远高于 #search-bar-inside 上的 Tailwind 分层工具类，无层叠反转。 */
+  #navbar[data-dynamic-transparent="none"] #search-panel #search-bar-inside {
     background: rgba(0, 0, 0, 0.08);
   }
-  :root.dark body:has(#navbar[data-dynamic-transparent="none"]) #search-panel #search-bar-inside {
+  :root.dark #navbar[data-dynamic-transparent="none"] #search-panel #search-bar-inside {
     background: rgba(255, 255, 255, 0.15);
   }
 

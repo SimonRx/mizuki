@@ -474,16 +474,14 @@ html.is-page-transitioning #header-waves {
       opacity 0.2s ease-in !important;
   }
 
-  /* 手机端非首页时主内容区域从顶部开始 */
-  .absolute.w-full.z-30 {
-    transition: top 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94) 0.1s;
-    will-change: top;
-  }
-
+  /* 手机端非首页时主内容区域从顶部开始
+     性能优化：移除对布局属性 top 的 transition 与 will-change: top。
+     该主内容列节点数量庞大，对 top 做过渡会使每次 top 变化逐帧触发全页 Layout 重排；
+     此处仅保留最终定位值，不引入替代动画：
+     位移的视觉过渡由 Swup 页面切换过渡与 #banner-wrapper 自身的 transform 动画承担。 */
   .absolute.w-full.z-30.mobile-main-no-banner {
     top: 5.5rem !important;
     min-height: calc(100vh - 5.5rem) !important;
-    transition: top 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94) 0.2s !important;
   }
 }
 

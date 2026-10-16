@@ -169,17 +169,21 @@ html {
     fill: currentColor;
   }
 
-  /* 导航栏主题切换保护 - 仅在非 View Transitions 模式下禁用过渡 */
+  /* 导航栏主题切换保护 - 仅在非 View Transitions 模式下禁用过渡
+     注：`body:not(#banner-wrapper)` 由原 body 上的 `:has(#banner-wrapper)` 迁移而来。
+     #banner-wrapper 恒在 DOM 中（Banner 无条件渲染），原 `:has` 条件恒为真；
+     改用恒真且不含 `:has` 的选择器以消除 BODY 锚点 `:has` 的全文档样式重算。
+     `body:not(#banner-wrapper)` 与 `:has(#banner-wrapper)` 同为「1 个 id」前缀权重，特异性逐位相同；
+     且本组声明均为 !important，层叠不受影响。
+     （勿用「把 #banner-wrapper 与 body 并列作 `:is()` 分支」的写法——其 body 分支是死分支，见 mobile-navbar.css 顶部说明） */
   .is-theme-transitioning:not(.use-view-transition) #navbar > div,
   .is-theme-transitioning:not(.use-view-transition) #navbar[data-transparent-mode] > div,
   .is-theme-transitioning:not(.use-view-transition) #navbar[data-transparent-mode].scrolled > div,
   .is-theme-transitioning:not(.use-view-transition) body.wallpaper-transparent #navbar > div,
   .is-theme-transitioning:not(.use-view-transition) body.wallpaper-transparent #navbar[data-transparent-mode] > div,
   .is-theme-transitioning:not(.use-view-transition) body.wallpaper-transparent #navbar[data-transparent-mode].scrolled > div,
-  .is-theme-transitioning:not(.use-view-transition) #banner-wrapper ~ * #navbar > div,
-  .is-theme-transitioning:not(.use-view-transition) #banner-wrapper ~ * #navbar[data-transparent-mode] > div,
-  .is-theme-transitioning:not(.use-view-transition) body:has(#banner-wrapper) #navbar > div,
-  .is-theme-transitioning:not(.use-view-transition) body:has(#banner-wrapper) #navbar[data-transparent-mode] > div {
+  .is-theme-transitioning:not(.use-view-transition) body:not(#banner-wrapper) #navbar > div,
+  .is-theme-transitioning:not(.use-view-transition) body:not(#banner-wrapper) #navbar[data-transparent-mode] > div {
     transition: none !important;
     backdrop-filter: none !important;
   }

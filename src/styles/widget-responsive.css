@@ -34,7 +34,18 @@
 /* 组件容器基础样式 */
 .widget-container {
   min-height: var(--widget-min-height);
-  transition: all var(--widget-animation-duration) var(--widget-animation-timing);
+  /* 性能优化：将 transition:all 收敛为非布局属性白名单，
+     仅保留该元素实际会动画的属性：
+     - transform：悬停位移 translateY(-2px)（见下方 :hover / .widget-hover）
+     - box-shadow：悬停阴影
+     - opacity：淡入（.widget-container → .widget-animated 由 opacity 0 变 1）
+     明确排除 min-height / width / height / top / left / margin 等布局属性，
+     避免这些属性变化被逐帧过渡而触发 Layout 重排；
+     duration / timing 仍复用 --widget-animation-duration / --widget-animation-timing。 */
+  transition:
+    opacity var(--widget-animation-duration) var(--widget-animation-timing),
+    transform var(--widget-animation-duration) var(--widget-animation-timing),
+    box-shadow var(--widget-animation-duration) var(--widget-animation-timing);
   overflow: hidden;
 }
 
