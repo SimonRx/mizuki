@@ -262,6 +262,11 @@ const isRight = config.position === "right";
 		}
 
 		win.__mizukiPioController.update(el, config, hiddenOnMobile);
-		scheduleFrameSrc();
+		// 移除原先此处的 scheduleFrameSrc() 调用，原因有二：
+		// 1) 它是冗余兜底——update() 内部（L254）已同步调用 ensureFrameSrc()，
+		//    且 ensureFrameSrc 内部有 frameSrcRequested 幂等守卫，此处再调度必然是空操作；
+		// 2) scheduleFrameSrc 是在首次初始化块（if (!win.__mizukiPioController)）内声明的块级 const，
+		//    在本块（初始化 if 之外）引用属于越界访问，会抛 ReferenceError: scheduleFrameSrc is not defined
+		//    （首次加载会报，Swup 切页时该初始化块被跳过同样会报）。
 	}
 </script>
