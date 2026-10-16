@@ -3,13 +3,11 @@
  *
  * 整合功能：
  * 1. 代码块主题切换优化（Intersection Observer + 分批更新）
- * 2. 重型元素优化（临时禁用动画、隐藏屏幕外元素、GPU 加速）
+ * 2. 重型元素优化（临时禁用动画）
  *
  * 核心优化策略：
  * - 只更新可见代码块，延迟屏幕外代码块
  * - 主题切换期间临时禁用重型元素动画和过渡
- * - 强制 GPU 合成层，减少重绘重排
- * - 使用 content-visibility 隐藏屏幕外元素
  */
 
 class ThemeOptimizer {
@@ -25,18 +23,6 @@ class ThemeOptimizer {
 
 		// 性能优化相关
 		this.isOptimizing = false;
-		this.heavySelectors = [
-			".float-panel",
-			"#navbar",
-			".music-player",
-			"#mobile-toc-panel",
-			"#nav-menu-panel",
-			"#search-panel",
-			".dropdown-content",
-			".widget",
-			".post-card",
-			".custom-md",
-		];
 
 		this.init();
 	}
@@ -125,9 +111,6 @@ class ThemeOptimizer {
 			} else {
 				block.classList.remove("hide-during-transition");
 			}
-
-			// 强制重新计算样式
-			void block.offsetWidth;
 		});
 
 		// 检查当前是否处于主题切换状态
@@ -387,14 +370,8 @@ class ThemeOptimizer {
 			return;
 		}
 
-		// 1. 临时禁用重型元素动画
+		// 临时禁用重型元素动画
 		this.disableHeavyAnimations();
-
-		// 2. 隐藏视口外的重型元素
-		this.hideOffscreenHeavyElements();
-
-		// 3. 强制 GPU 合成层
-		this.forceCompositing();
 	}
 
 	disableHeavyAnimations() {
@@ -453,51 +430,6 @@ class ThemeOptimizer {
     `;
 	}
 
-	hideOffscreenHeavyElements() {
-		const viewportHeight = window.innerHeight;
-		const scrollTop = window.scrollY;
-
-		this.hiddenElements = [];
-
-		this.heavySelectors.forEach((selector) => {
-			const elements = document.querySelectorAll(selector);
-			elements.forEach((element) => {
-				const rect = element.getBoundingClientRect();
-				const elementTop = rect.top + scrollTop;
-				const elementBottom = elementTop + rect.height;
-
-				// 完全在视口外（增加200px边距）
-				if (
-					elementBottom < scrollTop - 200 ||
-					elementTop > scrollTop + viewportHeight + 200
-				) {
-					const originalVisibility = element.style.contentVisibility;
-					element.style.contentVisibility = "hidden";
-					this.hiddenElements.push({ element, originalVisibility });
-				}
-			});
-		});
-	}
-
-	forceCompositing() {
-		const criticalElements = document.querySelectorAll(`
-      .expressive-code,
-      .post-card,
-      .widget,
-      #navbar
-    `);
-
-		this.compositedElements = [];
-
-		criticalElements.forEach((element) => {
-			const original = element.style.transform;
-			element.style.transform = "translateZ(0)";
-			element.style.willChange = "transform";
-
-			this.compositedElements.push({ element, original });
-		});
-	}
-
 	restoreAfterThemeSwitch(useViewTransition = false) {
 		this.isOptimizing = false;
 
@@ -514,26 +446,6 @@ class ThemeOptimizer {
 				if (this.tempStyleSheet && this.tempStyleSheet.parentNode) {
 					this.tempStyleSheet.remove();
 					this.tempStyleSheet = null;
-				}
-
-				// 恢复隐藏的元素
-				if (this.hiddenElements) {
-					this.hiddenElements.forEach(
-						({ element, originalVisibility }) => {
-							element.style.contentVisibility =
-								originalVisibility || "";
-						},
-					);
-					this.hiddenElements = null;
-				}
-
-				// 恢复合成层设置
-				if (this.compositedElements) {
-					this.compositedElements.forEach(({ element, original }) => {
-						element.style.transform = original || "";
-						element.style.willChange = "";
-					});
-					this.compositedElements = null;
 				}
 			});
 		});

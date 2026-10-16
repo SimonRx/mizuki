@@ -35,6 +35,10 @@ const textData = Array.isArray(text) ? JSON.stringify(text) : text;
 		private currentIndex = 0;
 		private isDeleting = false;
 		private timeoutId: number | null = null;
+		// 持久化文本节点：打字/删除全程只更新它的 data（字符数据），
+		// 不再使用 textContent/innerHTML 重建节点，避免逐字符写入产生 childList
+		// 结构性变更（进而让 body:has(...) 等选择器反复失效重算）
+		private textNode: Text | null = null;
 
 		constructor(element: HTMLElement) {
 			this.element = element;
@@ -69,9 +73,42 @@ const textData = Array.isArray(text) ? JSON.stringify(text) : text;
 			);
 		}
 
+		// 确保元素内只挂载一个长期复用的文本节点；
+		// 正常情况下仅在首次写入时 appendChild 一次，之后永不重建
+		private ensureTextNode(): Text {
+			if (this.textNode && this.textNode.parentNode === this.element) {
+				return this.textNode;
+			}
+
+			const node = document.createTextNode("");
+			// 仅当元素内已有残留子节点时才清理，避免无谓的结构变更
+			if (this.element.firstChild) {
+				this.element.textContent = "";
+			}
+			this.element.appendChild(node);
+			this.textNode = node;
+			return node;
+		}
+
+		// 唯一的文本写入入口：只修改持久文本节点的 data。
+		// 空字符串用不间断空格（nbsp）占位，等价于原 `:empty::before` 的占位效果，
+		// 保证空文本时宽度不塌陷，同时不会触发 childList 结构性变更
+		private setText(value: string) {
+			const node = this.ensureTextNode();
+			const data = value.length > 0 ? value : "\u00A0";
+			if (node.data !== data) {
+				node.data = data;
+			}
+		}
+
+		// 按当前已打出的字符数渲染可见文本
+		private renderCurrent(currentText: string) {
+			this.setText(currentText.substring(0, this.currentIndex));
+		}
+
 		private showRandomText() {
 			const randomIndex = Math.floor(Math.random() * this.texts.length);
-			this.element.textContent = this.texts[randomIndex];
+			this.setText(this.texts[randomIndex]);
 		}
 
 		private start() {
@@ -92,10 +129,7 @@ const textData = Array.isArray(text) ? JSON.stringify(text) : text;
 				// 删除字符
 				if (this.currentIndex > 0) {
 					this.currentIndex--;
-					this.element.textContent = currentText.substring(
-						0,
-						this.currentIndex,
-					);
+					this.renderCurrent(currentText);
 					this.timeoutId = window.setTimeout(
 						() => this.type(),
 						this.deleteSpeed,
@@ -114,10 +148,7 @@ const textData = Array.isArray(text) ? JSON.stringify(text) : text;
 				// 添加字符
 				if (this.currentIndex < currentText.length) {
 					this.currentIndex++;
-					this.element.textContent = currentText.substring(
-						0,
-						this.currentIndex,
-					);
+					this.renderCurrent(currentText);
 					this.timeoutId = window.setTimeout(
 						() => this.type(),
 						this.speed,
@@ -130,11 +161,9 @@ const textData = Array.isArray(text) ? JSON.stringify(text) : text;
 							() => this.type(),
 							this.pauseTime,
 						);
-					} else {
-						// 如果只有一条文本，保持显示不删除，但确保元素有内容
-						if (this.texts.length === 1 && this.texts[0] === "") {
-							this.element.innerHTML = "&nbsp;"; // 使用不间断空格保持布局
-						}
+					} else if (this.texts.length === 1 && this.texts[0] === "") {
+						// 单条空文本：写入占位（同样走持久文本节点），用不间断空格保持布局
+						this.renderCurrent(currentText);
 					}
 				}
 			}
@@ -176,9 +205,9 @@ const textData = Array.isArray(text) ? JSON.stringify(text) : text;
 		vertical-align: baseline;
 	}
 
-	/* 确保打字机效果不会导致布局抖动 */
-	.typewriter:empty::before {
-		content: "\00A0"; /* 使用不间断空格保持高度 */
-		visibility: hidden;
-	}
+	/*
+	 * 原 `.typewriter:empty::before` 占位规则已移除：持久文本节点会让元素不再处于 :empty
+	 * 状态，空文本的占位宽度改由脚本写入的 nbsp 文本节点保证（见 setText），
+	 * 高度由上面的 min-height: 1.5em 保证，因此无需再依赖 :empty 伪类。
+	 */
 </style>
