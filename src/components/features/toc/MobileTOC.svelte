@@ -25,6 +25,13 @@ let observer: IntersectionObserver | undefined;
 let initializing = false;
 let swupListenersRegistered = $state(false);
 
+// 标题位置缓存（非响应式）：滚动期只读 scrollY + 数组比对，不再逐个读 offsetTop
+let headingPositions: { id: string; top: number }[] | null = null;
+// 上次写出的 activeId，用于显式 guard，避免无意义的响应式更新
+let lastActiveId = "";
+// rAF 合并标志：同一帧内的多次 scroll 只执行一次高亮计算
+let rafPending = false;
+
 const togglePanel = async () => {
 	await panelManager.togglePanel("mobile-toc-panel");
 };
@@ -43,22 +50,58 @@ const navigateToPost = (url: string) => {
 	navigateToPage(url);
 };
 
-const updateActiveHeading = () => {
+/**
+ * 一次性读取所有标题的 offsetTop 建立位置缓存。
+ * offsetTop 是相对 offsetParent 的恒定值，滚动过程中不变，无需重复读取。
+ */
+const cacheHeadings = () => {
 	const headings = document.querySelectorAll("h1, h2, h3, h4, h5, h6");
-	const scrollTop = window.scrollY;
-	const offset = 100;
-
-	let currentActiveId = "";
+	const positions: { id: string; top: number }[] = [];
 	headings.forEach((heading) => {
 		if (heading.id) {
-			const elementTop = (heading as HTMLElement).offsetTop - offset;
-			if (scrollTop >= elementTop) {
-				currentActiveId = heading.id;
-			}
+			positions.push({
+				id: heading.id,
+				top: (heading as HTMLElement).offsetTop - 100,
+			});
 		}
 	});
+	headingPositions = positions;
+};
 
-	activeId = currentActiveId;
+/**
+ * 滚动高亮：只读 window.scrollY + 线性遍历缓存数组，滚动期零强制回流。
+ * 仅当 activeId 实际变化时才写响应式状态（显式 guard）。
+ */
+const updateActiveHeading = () => {
+	if (headingPositions === null) {
+		cacheHeadings();
+	}
+
+	const positions = headingPositions ?? [];
+	const scrollTop = window.scrollY;
+	let currentActiveId = "";
+	for (const pos of positions) {
+		if (scrollTop >= pos.top) {
+			currentActiveId = pos.id;
+		}
+	}
+
+	if (currentActiveId !== lastActiveId) {
+		lastActiveId = currentActiveId;
+		activeId = currentActiveId;
+	}
+};
+
+/**
+ * rAF 合并的滚动入口：同一帧内的多次 scroll 只调度一次高亮计算
+ */
+const onScroll = () => {
+	if (rafPending) return;
+	rafPending = true;
+	requestAnimationFrame(() => {
+		rafPending = false;
+		updateActiveHeading();
+	});
 };
 
 const setupIntersectionObserver = () => {
@@ -162,6 +205,10 @@ const init = () => {
 	}
 	initializing = true;
 
+	// 切页后 DOM 已替换：置空标题位置缓存与上次高亮，下次滚动 lazy 重建
+	headingPositions = null;
+	lastActiveId = "";
+
 	isHomePage = checkIsHomePage();
 	checkSwupAvailability();
 
@@ -181,13 +228,13 @@ const init = () => {
 
 onMount(() => {
 	setTimeout(init, 100);
-	window.addEventListener("scroll", updateActiveHeading, {
+	window.addEventListener("scroll", onScroll, {
 		passive: true,
 	});
 
 	return () => {
 		observer?.disconnect();
-		window.removeEventListener("scroll", updateActiveHeading);
+		window.removeEventListener("scroll", onScroll);
 
 		const w = window as unknown as {
 			swup?: {

@@ -120,27 +120,6 @@ export function checkIsHomePage(): boolean {
 }
 
 /**
- * 更新活动标题（基于滚动位置）
- */
-export function updateActiveHeading(): string {
-	const headings = document.querySelectorAll("h1, h2, h3, h4, h5, h6");
-	const scrollTop = window.scrollY;
-	const offset = 100;
-
-	let currentActiveId = "";
-	headings.forEach((heading) => {
-		if (heading.id) {
-			const elementTop = (heading as HTMLElement).offsetTop - offset;
-			if (scrollTop >= elementTop) {
-				currentActiveId = heading.id;
-			}
-		}
-	});
-
-	return currentActiveId;
-}
-
-/**
  * 滚动到指定标题
  */
 export function scrollToHeading(id: string, offset = 80): void {
