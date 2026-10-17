@@ -345,9 +345,22 @@ const bannerFormats = getImageFormats();
 				function applyInitialKB(slotClass) {
 					var slot = container.querySelector('.' + slotClass);
 					if (!slot || isSlotHiddenByBreakpoint(slot)) return;
-					slot.classList.remove('banner-kb');
-					void slot.offsetWidth;
-					slot.classList.add('banner-kb');
+					// 仅通过合成层动画（transform/opacity）驱动，不再使用
+					// remove('banner-kb') + void offsetWidth + add('banner-kb') 的写法：
+					// 读取 offsetWidth 会强制冲刷待处理的样式/布局（页面级 layout 失效），
+					// 而这里只是要重启动画。首次直接加类即可；已有时用 WAAPI 归零重启，
+					// 同样只作用于该槽位子树、不触发任何布局。
+					if (!slot.classList.contains('banner-kb')) {
+						slot.classList.add('banner-kb');
+						return;
+					}
+					var animations = slot.getAnimations
+						? slot.getAnimations()
+						: [];
+					for (var i = 0; i < animations.length; i++) {
+						animations[i].currentTime = 0;
+						animations[i].play();
+					}
 				}
 
 				// 暂停 Ken Burns 动画（保持当前进度）

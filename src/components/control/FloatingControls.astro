@@ -91,9 +91,9 @@ const { headings = [] } = Astro.props;
 		pointer-events: none;
 	}
 
-	:global(html.fab-visibility-locked #floating-toc-btn.fab-lock-visible),
-	:global(html.fab-visibility-locked #back-to-home-btn.fab-lock-visible),
-	:global(html.fab-visibility-locked #back-to-top-btn.fab-lock-visible) {
+	:global(.floating-controls-container.fab-visibility-locked #floating-toc-btn.fab-lock-visible),
+	:global(.floating-controls-container.fab-visibility-locked #back-to-home-btn.fab-lock-visible),
+	:global(.floating-controls-container.fab-visibility-locked #back-to-top-btn.fab-lock-visible) {
 		min-width: var(--fab-button-size) !important;
 		min-height: var(--fab-button-size) !important;
 		transform: scale(1) !important;
@@ -111,20 +111,20 @@ const { headings = [] } = Astro.props;
 	}
 
 	:global(
-		html:not(.dark).fab-visibility-locked #floating-toc-btn.fab-lock-visible
+		html:not(.dark) .floating-controls-container.fab-visibility-locked #floating-toc-btn.fab-lock-visible
 	),
 	:global(
-		html:not(.dark).fab-visibility-locked #back-to-home-btn.fab-lock-visible
+		html:not(.dark) .floating-controls-container.fab-visibility-locked #back-to-home-btn.fab-lock-visible
 	),
 	:global(
-		html:not(.dark).fab-visibility-locked #back-to-top-btn.fab-lock-visible
+		html:not(.dark) .floating-controls-container.fab-visibility-locked #back-to-top-btn.fab-lock-visible
 	) {
 		border-color: var(--line-color) !important;
 	}
 
-	:global(html.fab-visibility-locked #floating-toc-btn.fab-lock-visible.hide),
-	:global(html.fab-visibility-locked #back-to-home-btn.fab-lock-visible.hide),
-	:global(html.fab-visibility-locked #back-to-top-btn.fab-lock-visible.hide) {
+	:global(.floating-controls-container.fab-visibility-locked #floating-toc-btn.fab-lock-visible.hide),
+	:global(.floating-controls-container.fab-visibility-locked #back-to-home-btn.fab-lock-visible.hide),
+	:global(.floating-controls-container.fab-visibility-locked #back-to-top-btn.fab-lock-visible.hide) {
 		transform: scale(1) !important;
 		opacity: 1 !important;
 		pointer-events: auto !important;
@@ -138,14 +138,14 @@ const { headings = [] } = Astro.props;
 		border-style: solid !important;
 	}
 
-	:global(html.fab-visibility-locked #floating-toc-btn.fab-lock-visible svg),
-	:global(html.fab-visibility-locked #back-to-home-btn.fab-lock-visible svg),
-	:global(html.fab-visibility-locked #back-to-top-btn.fab-lock-visible svg) {
+	:global(.floating-controls-container.fab-visibility-locked #floating-toc-btn.fab-lock-visible svg),
+	:global(.floating-controls-container.fab-visibility-locked #back-to-home-btn.fab-lock-visible svg),
+	:global(.floating-controls-container.fab-visibility-locked #back-to-top-btn.fab-lock-visible svg) {
 		opacity: 1 !important;
 	}
 
 	:global(
-		html.fab-visibility-locked .floating-control-item.fab-lock-collapsed
+		.floating-controls-container.fab-visibility-locked .floating-control-item.fab-lock-collapsed
 	) {
 		max-height: 0 !important;
 		opacity: 0 !important;
@@ -234,6 +234,8 @@ const { headings = [] } = Astro.props;
 				mermaidRendering: false,
 				mermaidRenderTimer: null,
 				listenersRegistered: false,
+				// 记录上一次写入的可见控件数量；配合去重避免重复的根变量写入
+				lastFabVisibleCount: null,
 			};
 		}
 
@@ -281,10 +283,18 @@ const { headings = [] } = Astro.props;
 				}
 			}
 
-			document.documentElement.style.setProperty(
-				"--fab-visible-count",
-				String(Math.max(visibleCount, 1)),
-			);
+			// 仅在可见数量变化时写入根变量：避免每次切页/滚动都触发一次
+			// 「全文档（约数千元素）样式失效重算」。该变量由音乐播放器（位于
+			// 浮动控件容器之外、根作用域）消费，故必须保留在 documentElement 上，
+			// 这里把重复写入收敛为「按需的一次性根变量写入」。
+			const nextVisibleCount = Math.max(visibleCount, 1);
+			if (nextVisibleCount !== state.lastFabVisibleCount) {
+				state.lastFabVisibleCount = nextVisibleCount;
+				document.documentElement.style.setProperty(
+					"--fab-visible-count",
+					String(nextVisibleCount),
+				);
+			}
 		}
 
 		function observeFloatingControlButton(id) {
@@ -317,8 +327,14 @@ const { headings = [] } = Astro.props;
 			observeFloatingControlButton("back-to-top-btn");
 		}
 
+		// 锁定类下放到浮动控件容器本身：把样式失效范围从整棵文档
+		// 收敛到容器子树（配合 CSS 选择器 .floating-controls-container.fab-visibility-locked）
+		function getFloatingControlsContainer() {
+			return document.querySelector(".floating-controls-container");
+		}
+
 		function lockFloatingControlVisibility() {
-			document.documentElement.classList.add("fab-visibility-locked");
+			getFloatingControlsContainer()?.classList.add("fab-visibility-locked");
 
 			const items = document.querySelectorAll(
 				".floating-control-item[data-control-key]",
@@ -357,7 +373,9 @@ const { headings = [] } = Astro.props;
 		}
 
 		function unlockFloatingControlVisibility() {
-			document.documentElement.classList.remove("fab-visibility-locked");
+			getFloatingControlsContainer()?.classList.remove(
+				"fab-visibility-locked",
+			);
 
 			const items = document.querySelectorAll(
 				".floating-control-item[data-control-key]",

@@ -41,6 +41,9 @@ export class SwupHooksManager {
 
 	private cachedElements: Map<string, Element | null> = new Map();
 
+	// 遮罩元信息更新的帧内合并标志：同一帧内多次调用只执行一次实际写入
+	private overlayUpdateScheduled = false;
+
 	constructor(bannerEnabled: boolean, handlers: SwupHookHandlers = {}) {
 		this.bannerEnabled = bannerEnabled;
 		this.handlers = handlers;
@@ -78,7 +81,23 @@ export class SwupHooksManager {
 		this.registerVisitStartHook();
 		this.registerPageViewHook();
 		this.registerVisitEndHook();
-		this.updatePageOverlay();
+		this.scheduleOverlayUpdate();
+	}
+
+	/**
+	 * 合并同一帧内的多次遮罩更新请求
+	 * content:replace 与 page:view 常常在同一帧内连续触发，
+	 * 延迟到单个 requestAnimationFrame 统一执行可避免同帧重复的样式失效。
+	 */
+	private scheduleOverlayUpdate(): void {
+		if (this.overlayUpdateScheduled) {
+			return;
+		}
+		this.overlayUpdateScheduled = true;
+		requestAnimationFrame(() => {
+			this.overlayUpdateScheduled = false;
+			this.updatePageOverlay();
+		});
 	}
 
 	private registerScrollTopHook(): void {
@@ -170,7 +189,7 @@ export class SwupHooksManager {
 				pathsEqual(window.location.pathname, url("/")),
 			);
 			this.ensureNavbarVisibleForFullscreen();
-			this.updatePageOverlay();
+			this.scheduleOverlayUpdate();
 
 			// 初始化新页面的图片、公式、滚动条和 TOC
 			this.handlers.initFancybox?.();
@@ -222,7 +241,7 @@ export class SwupHooksManager {
 				pathsEqual(window.location.pathname, url("/")),
 			);
 			this.ensureNavbarVisibleForFullscreen();
-			this.updatePageOverlay();
+			this.scheduleOverlayUpdate();
 
 			// 扩展页面高度
 			this.extendPageHeight(false);
@@ -541,36 +560,45 @@ export class SwupHooksManager {
 			return;
 		}
 
-		titleEl.textContent = title;
-		titleEl.classList.remove("anim-in");
-
 		const isPost = dataEl.dataset.isPost === "true";
 		const date = dataEl.dataset.date || "";
 		const category = dataEl.dataset.category || "";
 		const words = dataEl.dataset.words || "";
+		const showMeta = isPost && Boolean(date || category || words);
 
-		if (isPost && (date || category || words)) {
+		// 先读 DOM 状态（无布局开销）：判断是否需要重启动画。
+		// banner-wrapper 每次切页都会被 Swup 替换，遮罩元素通常是全新的、不带 anim-in，
+		// 此时无需强制布局读即可直接播放入场动画；只有元素已带动画类时才需要冲刷一次。
+		const hadAnimIn =
+			titleEl.classList.contains("anim-in") ||
+			metaEl.classList.contains("anim-in");
+
+		// —— 批量写入阶段：集中写完所有文本/类/内联样式，避免逐条交替写触发的多次失效 ——
+		titleEl.textContent = title;
+		titleEl.classList.remove("anim-in");
+
+		if (showMeta) {
 			dateEl.textContent = date;
 			categoryEl.textContent = category;
 			wordsEl.textContent = words ? `${words} 字` : "";
 			metaEl.classList.remove("hidden");
 			metaEl.classList.remove("anim-in");
-
-			overlay.style.opacity = "1";
-			overlay.style.transform = "";
-			overlay.style.filter = "";
-
-			void titleEl.offsetWidth;
-			titleEl.classList.add("anim-in");
-			void metaEl.offsetWidth;
-			metaEl.classList.add("anim-in");
 		} else {
 			metaEl.classList.add("hidden");
-			overlay.style.opacity = "1";
-			overlay.style.transform = "";
-			overlay.style.filter = "";
-			void titleEl.offsetWidth;
-			titleEl.classList.add("anim-in");
+		}
+
+		overlay.style.opacity = "1";
+		overlay.style.transform = "";
+		overlay.style.filter = "";
+
+		// 仅在需要重启「已存在」的入场动画时才做一次布局读：
+		// 原先对 titleEl / metaEl 各读一次 offsetWidth，会在同一帧产生两次强制布局。
+		if (hadAnimIn) {
+			void overlay.offsetWidth;
+		}
+		titleEl.classList.add("anim-in");
+		if (showMeta) {
+			metaEl.classList.add("anim-in");
 		}
 	}
 

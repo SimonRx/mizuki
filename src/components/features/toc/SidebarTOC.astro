@@ -50,6 +50,8 @@ const { class: className } = Astro.props;
 		appliedMask: boolean[] = [];
 		// 容器级高亮开关的当前状态
 		hasActiveClass = false;
+		// 上次生成目录时的标题集合签名（Dirty Check：未变化则跳过重建）
+		lastHeadingSignature: string | null = null;
 
 		constructor() {
 			super();
@@ -287,6 +289,7 @@ const { class: className } = Astro.props;
 			if (!isPostPage) {
 				this.innerHTML = "";
 				delete this.dataset.loaded;
+				this.lastHeadingSignature = null;
 				return;
 			}
 
@@ -299,6 +302,21 @@ const { class: className } = Astro.props;
 			if (headings.length === 0) {
 				this.innerHTML = "";
 				delete this.dataset.loaded;
+				this.lastHeadingSignature = null;
+				return;
+			}
+
+			// 标题集合签名：id + 标签名(hN) + 归一化文本；分隔符用不可打印字符，避免拼接歧义
+			const signature = headings
+				.map((h) => `${h.id}\u0000h${h.level}\u0000${h.text.trim()}\u0001`)
+				.join("");
+
+			// Dirty Check：目录容器仍持有已生成内容（dataset.loaded 证明容器身份未变）
+			// 且标题集合与上次完全一致时直接返回——不重写 innerHTML、不重建 DOM
+			if (
+				this.dataset.loaded === "true" &&
+				this.lastHeadingSignature === signature
+			) {
 				return;
 			}
 
@@ -344,6 +362,7 @@ const { class: className } = Astro.props;
 				tocHTML +
 				'<div id="active-indicator" class="-z-10 absolute bg-[var(--toc-btn-hover)] left-0 right-0 rounded-xl transition-all group-hover:bg-transparent border-2 border-[var(--toc-btn-hover)] group-hover:border-[var(--toc-btn-active)] border-dashed"></div>';
 			this.dataset.loaded = "true";
+			this.lastHeadingSignature = signature;
 			// 内容重建后逐项与指示器状态失效：重置差量缓存并清除容器高亮开关
 			this.appliedMask = [];
 			this.hasActiveClass = false;
