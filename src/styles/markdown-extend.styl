@@ -88,14 +88,12 @@
     margin-right: auto
     max-width: 100%
 
-// 重型内容块渲染跳过：屏外长引用与表格不渲染，配合 contain-intrinsic-size
+// 重型内容块渲染跳过：屏外表格不渲染，配合 contain-intrinsic-size
 // 提供预估高度占位，避免滚动条跳动与页面高度剧变。
 // 仅用于重型块，绝不可加到标题标签（h2/h3）上，否则会破坏目录锚点定位。
+// blockquote 已移除 cv：引用块高度随内容长度剧烈变化，静态 8rem 占位系统性失准，
+// 收益≈0（引用块普遍偏短），却把「屏外占位不准」变成滚动条跳变，故直接不 cv。
 .custom-md
-  blockquote
-    content-visibility: auto
-    contain-intrinsic-size: auto 8rem
-
   table
     content-visibility: auto
     contain-intrinsic-size: auto 15rem
