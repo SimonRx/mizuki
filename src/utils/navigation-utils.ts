@@ -213,10 +213,10 @@ export function initLinkPreloading(): void {
 		},
 	);
 
-	// 观察所有内部链接
+	// 只观察文章详情链接与显式标记的链接，避免全量内链预取浪费带宽
 	const observeLinks = () => {
 		document
-			.querySelectorAll('a[href^="/"], a[href^="./"], a[href^="../"]')
+			.querySelectorAll('a[href*="/posts/"], a[data-swup-preload]')
 			.forEach((link) => {
 				observer.observe(link);
 			});

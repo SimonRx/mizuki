@@ -95,7 +95,9 @@ export default defineConfig({
 			// 期间点击内链会回退为 MPA 整页刷新（冷缓存/慢网下窗口可达秒级）。
 			// 关闭后 Swup 随模块脚本在 HTML 解析后立即初始化，消除回退窗口。
 			loadOnIdle: false,
-			preload: false, // 禁用预加载以提升性能
+			// 开启 hover 预取以注入 plugin（swup.preload 可用），visible 关闭；
+			// 文章链接以外的 hover 预取带宽开销作为已知代价接受
+			preload: { hover: true, visible: false },
 			accessibility: true,
 			updateHead: process.env.NODE_ENV === "production",
 			updateBodyClass: false,
