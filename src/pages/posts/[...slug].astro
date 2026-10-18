@@ -313,8 +313,9 @@ const jsonLd = {
 							src={coverSrc}
 							basePath={cover.basePath}
 							class="mb-8 rounded-xl banner-container onload-animation"
-							widths={[640, 1024, 1536, 2048]}
-							sizes="(max-width: 768px) 100vw, (max-width: 1200px) 80vw, 1200px"
+							widths={[640, 768, 1024, 1536]}
+							sizes="(min-width: 2560px) 1400px, (min-width: 1920px) 1000px, (min-width: 1440px) 744px, (min-width: 1280px) calc(100vw - 696px), (min-width: 768px) calc(100vw - 400px), calc(100vw - 56px)"
+							quality={78}
 						/>
 					</>
 				)

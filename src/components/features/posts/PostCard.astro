@@ -174,8 +174,9 @@ const homeContent = getPostHomeContent(
 					basePath={cover.basePath}
 					alt="Cover Image of the Post"
 					class="w-full h-full"
-					widths={[200, 400, 800]}
-					sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+					widths={[240, 480, 660, 1024]}
+					sizes="(min-width: 1440px) 229px, (min-width: 1280px) calc(28vw - 175px), (min-width: 768px) calc(28vw - 92px), calc(100vw - 42px)"
+					quality={78}
 				/>
 			</a>
 		)
