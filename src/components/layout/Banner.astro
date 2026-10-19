@@ -570,13 +570,23 @@ const bannerFormats = getImageFormats();
 					startCarousel();
 				};
 
+				// 全屏壁纸模式下 #banner-carousel 铺满视口，指针恒在其上，悬停暂停会退化为永久冻结
+				// （carousel interval 变死配置、Ken Burns 恒停）。该模式属环境背景，应保持轮播与缩放运行；
+				// 卡片模式下指针可自由进出，沿用原有悬停暂停。
+				function isFullscreenWallpaper() {
+					return document.body.classList.contains('enable-banner') &&
+						document.body.classList.contains('fullscreen-banner');
+				}
+
 				var onMouseEnter = function() {
+					if (isFullscreenWallpaper()) return;
 					isPaused = true;
 					stopCarousel();
 					pauseKenBurns();
 				};
 
 				var onMouseLeave = function() {
+					if (isFullscreenWallpaper()) return;
 					isPaused = false;
 					resumeKenBurns();
 					if (remainingTime > 0) {

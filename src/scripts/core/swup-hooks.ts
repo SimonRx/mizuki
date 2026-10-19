@@ -463,11 +463,15 @@ export class SwupHooksManager {
 		}
 
 		// 关键帧对齐 banner.css @media (width < 1280px) 的入场过渡：
-		// translateY(-100%)→0（.5s）+ opacity 0→1（.3s），仅 opacity/transform 合成属性
+		// 位移 -100%→0（.5s）+ opacity 0→1（.3s）。
+		// 位移必须用 translate 属性而非 transform：fullscreen 模式下 banner.css 对
+		// #banner-wrapper 声明了 transform: none !important，按 CSS Cascade
+		// 「作者 important 声明 > animation origin」会压制 WAAPI 的 transform 关键帧，
+		// 使滑入失效；translate 是独立属性，不受任何 transform !important 影响。
 		bannerWrapper.animate(
 			[
-				{ transform: "translateY(-100%) translateZ(0)" },
-				{ transform: "translateY(0) translateZ(0)" },
+				{ translate: "0px -100%" },
+				{ translate: "0px 0" },
 			],
 			{ duration: 500, easing: "cubic-bezier(0.25, 0.46, 0.45, 0.94)" },
 		);
