@@ -48,3 +48,5 @@ minimumReleaseAgeExclude:
   - '@biomejs/cli-win32-arm64@2.5.2'
   - '@biomejs/cli-win32-x64@2.5.2'
   - '@iconify-json/material-symbols@1.2.82'
+patchedDependencies:
+  '@swup/preload-plugin@3.2.11': patches/@swup__preload-plugin@3.2.11.patch

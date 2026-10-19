@@ -4,6 +4,9 @@ settings:
   autoInstallPeers: true
   excludeLinksFromLockfile: false
 
+patchedDependencies:
+  '@swup/preload-plugin@3.2.11': f77782d79c2c515f577fff398657aed0530ba0c07f6f33b0cdf43cf2a1f4ed10
+
 importers:
 
   .:
@@ -7445,7 +7448,7 @@ snapshots:
       '@swup/head-plugin': 2.3.1(swup@4.9.2)
       '@swup/overlay-theme': 2.0.2(swup@4.9.2)
       '@swup/parallel-plugin': 0.4.0(rolldown@1.1.5)(swup@4.9.2)
-      '@swup/preload-plugin': 3.2.11(swup@4.9.2)
+      '@swup/preload-plugin': 3.2.11(patch_hash=f77782d79c2c515f577fff398657aed0530ba0c07f6f33b0cdf43cf2a1f4ed10)(swup@4.9.2)
       '@swup/progress-plugin': 3.2.0(swup@4.9.2)
       '@swup/route-name-plugin': 4.1.0(rolldown@1.1.5)(swup@4.9.2)
       '@swup/scripts-plugin': 2.1.0(swup@4.9.2)
@@ -7526,7 +7529,7 @@ snapshots:
     dependencies:
       swup: 4.9.2
 
-  '@swup/preload-plugin@3.2.11(swup@4.9.2)':
+  '@swup/preload-plugin@3.2.11(patch_hash=f77782d79c2c515f577fff398657aed0530ba0c07f6f33b0cdf43cf2a1f4ed10)(swup@4.9.2)':
     dependencies:
       '@swup/plugin': 4.0.0
       swup: 4.9.2
