@@ -106,7 +106,7 @@ describe("Music player media loading boundary", () => {
 	it("uses a real fallback URL when external playlists omit cover art", () => {
 		assert.match(
 			constantsSource,
-			/DEFAULT_COVER_URL\s*=\s*"\/favicon\/favicon\.ico"/,
+			/DEFAULT_COVER_URL\s*=\s*"\/favicon\/default-cover\.webp"/,
 		);
 		assert.match(
 			storeSource,

@@ -8,7 +8,7 @@ export const STORAGE_KEY_VOLUME = "music-player-volume";
 
 export const DEFAULT_VOLUME = 0.7;
 
-export const DEFAULT_COVER_URL = "/favicon/favicon.ico";
+export const DEFAULT_COVER_URL = "/favicon/default-cover.webp";
 
 export const LOCAL_PLAYLIST: Song[] = [
 	{
