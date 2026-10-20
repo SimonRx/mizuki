@@ -176,24 +176,36 @@ const textData = Array.isArray(text) ? JSON.stringify(text) : text;
 		}
 	}
 
+	// 实例注册表：脚本随整页加载只执行一次，WeakMap 是闭包级持久变量。
+	// #banner-wrapper 持久化后，其内部的 .typewriter 元素会跨页存活；若每次
+	// content:replace 都直接 new，旧实例的 setTimeout 链仍在运行并与新实例
+	// 互写同一个持久文本节点，表现为字符反复被清空/跳动。
+	const instances = new WeakMap<HTMLElement, TypewriterEffect>();
+
+	function initTypewriters() {
+		const typewriterElements = document.querySelectorAll<HTMLElement>(".typewriter");
+		typewriterElements.forEach((element) => {
+			const existing = instances.get(element);
+			if (existing) {
+				existing.destroy();
+				instances.delete(element);
+			}
+			instances.set(element, new TypewriterEffect(element));
+		});
+	}
+
 	// 初始化所有打字机效果
 	document.addEventListener("DOMContentLoaded", () => {
-		const typewriterElements = document.querySelectorAll(".typewriter");
-		typewriterElements.forEach((element) => {
-			new TypewriterEffect(element as HTMLElement);
-		});
+		initTypewriters();
 	});
 
 	// 支持页面切换时重新初始化
 	// Swup 4 对 content:replace 钩子派发的 DOM 事件名为 swup:content:replace（冒号分隔），
-	// 旧代码误用 swup:contentReplaced（驼峰）导致切页后从不重新初始化；
-	// banner-wrapper 纳入 Swup 替换容器后，切页时容器整体替换、打字机元素被重建，
-	// 必须依赖此事件对新元素重新初始化。
+	// 旧代码误用 swup:contentReplaced（驼峰）导致切页后从不重新初始化。
+	// 切页时新插入的 .typewriter 元素需要在此时初始化（并登记），
+	// 持久元素则需要先清理旧实例，保证同一元素只保留一个实例。
 	document.addEventListener("swup:content:replace", () => {
-		const typewriterElements = document.querySelectorAll(".typewriter");
-		typewriterElements.forEach((element) => {
-			new TypewriterEffect(element as HTMLElement);
-		});
+		initTypewriters();
 	});
 </script>
 

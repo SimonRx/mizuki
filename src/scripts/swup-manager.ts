@@ -177,8 +177,8 @@ export class SwupManager {
 	/**
 	 * 显示 Banner
 	 * 轮播图由 Banner.astro 中的内联脚本自行初始化；
-	 * banner-wrapper 已纳入 Swup 替换容器（astro.config.mjs containers），
-	 * 切页时容器随页面整体替换，脚本随新页面重新执行并清理上一页监听器。
+	 * #banner-wrapper 已为持久元素（不在 Swup 替换容器内），切页时不重建，
+	 * 可见性由 swup-hooks 切换类驱动。
 	 * 此处仅处理单图模式的淡入效果。
 	 */
 	showBanner(): void {

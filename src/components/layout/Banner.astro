@@ -100,8 +100,10 @@ const bannerFormats = getImageFormats();
 			data-carousel-interval={carouselIntervalMs}
 			data-fade-ms={fadeMs}
 		>
-			{/* 移动端：media 条件保证桌面视口不会请求该资源；非首页整块隐藏故不渲染 */}
-			{isHomePage && mobileImages.length > 0 && (
+			{/* 移动端：media 条件保证桌面视口不会请求该资源；
+			    #banner-wrapper 为持久元素（首屏落在非首页时也会保留），故非首页同样渲染该槽位，
+			    仅通过 lazy/low 降低首屏非可见页面的图片优先级 */}
+			{mobileImages.length > 0 && (
 				<div class="banner-image-slot-mobile absolute inset-0 block md:hidden">
 					<ViewportImage
 						alt="Mobile banner image 1"
@@ -111,31 +113,30 @@ const bannerFormats = getImageFormats();
 						position={siteConfig.banner.position}
 						widths={MOBILE_HERO_WIDTHS}
 						sizes="100vw"
-						loading="eager"
-						fetchpriority="high"
+						loading={isHomePage ? "eager" : "lazy"}
+						fetchpriority={isHomePage ? "high" : "low"}
 						quality={bannerMobileQuality}
 						formats={bannerFormats}
 					/>
 				</div>
 			)}
-			{isHomePage &&
-				mobileImages.slice(1).map((src, i) => (
-					<template class="banner-tpl-mobile">
-						<ViewportImage
-							alt={`Mobile banner image ${i + 2}`}
-							class="object-cover h-full w-full"
-							src={src}
-							media="(max-width: 767px)"
-							position={siteConfig.banner.position}
-							widths={MOBILE_HERO_WIDTHS}
-							sizes="100vw"
-							loading="lazy"
-							fetchpriority="low"
-							quality={bannerMobileQuality}
-							formats={bannerFormats}
-						/>
-					</template>
-				))}
+			{mobileImages.slice(1).map((src, i) => (
+				<template class="banner-tpl-mobile">
+					<ViewportImage
+						alt={`Mobile banner image ${i + 2}`}
+						class="object-cover h-full w-full"
+						src={src}
+						media="(max-width: 767px)"
+						position={siteConfig.banner.position}
+						widths={MOBILE_HERO_WIDTHS}
+						sizes="100vw"
+						loading="lazy"
+						fetchpriority="low"
+						quality={bannerMobileQuality}
+						formats={bannerFormats}
+					/>
+				</template>
+			))}
 
 			{/* 桌面端：media 条件保证移动视口不会请求该资源 */}
 			{desktopImages.length > 0 && (
