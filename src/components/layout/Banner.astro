@@ -255,9 +255,8 @@ const bannerFormats = getImageFormats();
 	)}
 
 	<!-- 轮播脚本：首帧复用 + Ken Burns + Crossfade + 触摸/鼠标事件 -->
-	<!-- 注意：banner-wrapper 已纳入 Swup 替换容器（astro.config.mjs containers），
-	     切页时该容器随页面整体替换，脚本会随新页面重新执行（不再使用 data-swup-ignore-script），
-	     通过 window.__bannerCarouselCleanup 清理上一次导航遗留的监听器与定时器 -->
+	<!-- 注意：#banner-wrapper 不在 Swup 替换容器内（astro.config.mjs containers），
+	     切页时该元素持久保留，本脚本仅在整页加载时执行一次，监听器与计时器跨页存活 -->
 	<script is:inline>
 			(function initBannerCarousel() {
 				var container = document.getElementById('banner-carousel');
@@ -269,12 +268,6 @@ const bannerFormats = getImageFormats();
 				var FADE_MS = parseInt(container.dataset.fadeMs || '1500', 10);
 
 				if (mobileCount <= 1 && desktopCount <= 1) return;
-
-				// 清理上一次 Swup 导航遗留的监听器和定时器
-				if (window.__bannerCarouselCleanup) {
-					window.__bannerCarouselCleanup();
-					window.__bannerCarouselCleanup = null;
-				}
 
 				// 保存初始帧 HTML，供帧收集使用
 				if (typeof window.__bannerInitialFrameHtml === 'undefined') {
@@ -650,22 +643,6 @@ const bannerFormats = getImageFormats();
 				container.addEventListener('mouseleave', onMouseLeave);
 
 				startCarousel();
-
-				// 注册清理函数，供下次 Swup 导航或销毁时调用
-				window.__bannerCarouselCleanup = function() {
-					stopCarousel();
-					remainingTime = 0;
-					intervalStartTime = 0;
-					document.removeEventListener('visibilitychange', visibilityHandler);
-					if ('ontouchstart' in window) {
-						container.removeEventListener('touchstart', onTouchStart);
-						container.removeEventListener('touchmove', onTouchMove);
-						container.removeEventListener('touchend', onTouchEnd);
-					}
-					container.removeEventListener('mouseenter', onMouseEnter);
-					container.removeEventListener('mouseleave', onMouseLeave);
-					isCrossfading = { mobile: false, desktop: false };
-				};
 			})();
 		</script>
 

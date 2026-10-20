@@ -200,11 +200,6 @@ export class SwupHooksManager {
 
 			// 重新初始化 semifull 模式滚动检测
 			this.reinitSemifullScrollDetection();
-
-			// 切页回首页：为全新 banner-wrapper 重播入场动画
-			if (isHomePage) {
-				this.replayHomeBannerEntrance();
-			}
 		});
 	}
 
@@ -420,65 +415,6 @@ export class SwupHooksManager {
 				}, ANIMATION_CONFIG.mobileBannerDelay);
 			}
 		}
-	}
-
-	/**
-	 * 切页回首页时，为全新的 #banner-wrapper 重播入场动画
-	 *
-	 * 背景：#banner-wrapper 已纳入 Swup 替换容器（astro.config.mjs containers），
-	 * 切回首页时容器被全新元素替换。官方主题站该元素不在容器内（持久元素）：
-	 * 文章页带 mobile-hide-banner 隐藏态，回首页移除该类后凭 banner.css
-	 * <1280px 下的 transition（transform .5s cubic-bezier(.25,.46,.45,.94) /
-	 * opacity .3s ease-out）平滑入场；本站新元素从未带过该类，直接以最终态
-	 * 插入，观感为"硬插"、无过渡。
-	 *
-	 * 实现采用 WAAPI 直接驱动（与 applyInitialKB 的重播惯例一致），而非
-	 * 「加 mobile-hide-banner → 双 rAF 后移除」的类切换方案：实测后者隐藏态
-	 * 能否被提交取决于帧时序，rAF#1/#2 之间一旦没有完成的样式提交（掉帧、
-	 * 后台标签页、长任务），移除方向过渡会退化为瞬时完成、动画静默丢失；
-	 * WAAPI 动画时间线与帧提交解耦，关键帧/时长/缓动与 CSS 过渡逐参数等价。
-	 *
-	 * 仅在移动端（<1280px，与 syncMainContentPosition 的 isMobile 判定一致）的
-	 * banner/fullscreen 壁纸模式下执行：该入场动画本就只在 <1280px 媒体查询
-	 * 内存在，桌面端官方站同样没有。
-	 */
-	private replayHomeBannerEntrance(): void {
-		const mode = this.getCurrentWallpaperMode();
-		if (mode !== "banner" && mode !== "fullscreen") {
-			return;
-		}
-		if (window.innerWidth >= 1280) {
-			return;
-		}
-
-		const bannerWrapper = this.getCachedElement(
-			SWUP_SELECTORS.bannerWrapper,
-		) as HTMLElement | null;
-		if (
-			!bannerWrapper ||
-			typeof bannerWrapper.animate !== "function" ||
-			bannerWrapper.classList.contains("mobile-hide-banner")
-		) {
-			return;
-		}
-
-		// 关键帧对齐 banner.css @media (width < 1280px) 的入场过渡：
-		// 位移 -100%→0（.5s）+ opacity 0→1（.3s）。
-		// 位移必须用 translate 属性而非 transform：fullscreen 模式下 banner.css 对
-		// #banner-wrapper 声明了 transform: none !important，按 CSS Cascade
-		// 「作者 important 声明 > animation origin」会压制 WAAPI 的 transform 关键帧，
-		// 使滑入失效；translate 是独立属性，不受任何 transform !important 影响。
-		bannerWrapper.animate(
-			[
-				{ translate: "0px -100%" },
-				{ translate: "0px 0" },
-			],
-			{ duration: 500, easing: "cubic-bezier(0.25, 0.46, 0.45, 0.94)" },
-		);
-		bannerWrapper.animate(
-			[{ opacity: "0" }, { opacity: "1" }],
-			{ duration: 300, easing: "ease-out" },
-		);
 	}
 
 	private getCurrentWallpaperMode():

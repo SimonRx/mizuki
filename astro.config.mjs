@@ -88,7 +88,10 @@ export default defineConfig({
 		swup({
 			theme: false,
 			animationClass: "transition-swup-",
-			containers: ["main", "#banner-wrapper"],
+			// #banner-wrapper 是 main 的兄弟节点，刻意不列入替换容器：
+			// 它作为持久元素跨页存活，轮播 DOM/计时器/Ken Burns 进度不被销毁重建；
+			// 可见性仍由 swup-hooks 在 visit:start 切换 mobile-hide-banner 类驱动
+			containers: ["main"],
 			smoothScrolling: false, // 禁用平滑滚动以提升性能，避免与锚点导航冲突
 			cache: true,
 			// 提前初始化：默认 loadOnIdle 会等 window.load + 空闲回调才动态加载 Swup，
