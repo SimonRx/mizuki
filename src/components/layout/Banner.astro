@@ -257,8 +257,11 @@ const bannerFormats = getImageFormats();
 
 	<!-- 轮播脚本：首帧复用 + Ken Burns + Crossfade + 触摸/鼠标事件 -->
 	<!-- 注意：#banner-wrapper 不在 Swup 替换容器内（astro.config.mjs containers），
-	     切页时该元素持久保留，本脚本仅在整页加载时执行一次，监听器与计时器跨页存活 -->
-	<script is:inline>
+	     切页时该元素持久保留，本脚本仅在整页加载时执行一次，监听器与计时器跨页存活。
+	     必须保留 data-swup-ignore-script：@swup/scripts-plugin 在每次 content:replace 后
+	     会重新执行所有未标记的 <script>，会让本脚本重复初始化（重复计时器/监听器，
+	     并覆写当前可见槽位），表现为切页后轮播错乱。 -->
+	<script is:inline data-swup-ignore-script>
 			(function initBannerCarousel() {
 				var container = document.getElementById('banner-carousel');
 				if (!container) return;
@@ -325,24 +328,6 @@ const bannerFormats = getImageFormats();
 						desktop: window.__bannerRandomIndex ? window.__bannerRandomIndex.desktop : 0
 					};
 				}
-
-				// 切页会重建整个容器：新插入的 DOM 里 banner-image-slot-* 只含第 1 张
-				// （其余帧在 <template> 中），但 __bannerCarouselIndex 存在 window 上、跨页存活。
-				// 若不回写，画面永远回到第 1 张，即：每次切页都从第一张重新开始。
-				function restoreFrames(slotClass, type) {
-					var frames = window.__bannerCarouselFrames[slotClass];
-					if (!frames || frames.length <= 1) return;
-					var index = window.__bannerCarouselIndex[type] || 0;
-					if (index <= 0) return;
-					var slot = container.querySelector('.' + slotClass);
-					if (!slot) return;
-					var frame = frames[index % frames.length];
-					if (!frame || frame === slot.innerHTML) return;
-					slot.innerHTML = frame;
-				}
-				
-				restoreFrames('banner-image-slot-mobile', 'mobile');
-				restoreFrames('banner-image-slot-desktop', 'desktop');
 
 				// 断点检测（md = 768px）
 				function isSlotHiddenByBreakpoint(slot) {
@@ -460,11 +445,6 @@ const bannerFormats = getImageFormats();
 				var intervalStartTime = 0;
 				var remainingTime = 0;
 				var resumeTimerId = null;
-				// 跨页节奏基准：记录上一次切帧的时刻。容器每次切页都会重建，闭包内的
-				// 计时器随之归零，必须放到 window 上才能让节奏跨页延续。
-				var lastSwitchAt = (typeof window.__bannerCarouselLastSwitchAt === 'number')
-					? window.__bannerCarouselLastSwitchAt
-					: Date.now();
 
 				// 触摸手势状态
 				var touchStartX = 0;
@@ -480,28 +460,16 @@ const bannerFormats = getImageFormats();
 						applyInitialKB('banner-image-slot-desktop');
 					}
 
-					// 跨页节奏：首跳只等距上次切帧的剩余时间，避免每次切页都把周期重新计满
-					var now = Date.now();
-					var elapsed = now - lastSwitchAt;
-					// 首次进入 / 时钟异常 / 切页耗时超过一个周期：按满周期处理，不在刚到达时立即切帧
-					if (!(elapsed >= 0 && elapsed < interval)) elapsed = 0;
-					intervalStartTime = now - elapsed;
-					
-					function advance() {
-						lastSwitchAt = Date.now();
-						window.__bannerCarouselLastSwitchAt = lastSwitchAt;
-						intervalStartTime = lastSwitchAt;
-						crossfade('banner-image-slot-mobile', mobileCount, 'mobile');
-						crossfade('banner-image-slot-desktop', desktopCount, 'desktop');
-					}
-					
-					timerId = setTimeout(function() {
-						if (isPaused) { timerId = null; return; }
-						advance();
-						timerId = setInterval(function() {
-							if (!isPaused) advance();
-						}, interval);
-					}, interval - elapsed);
+					// 脚本仅在整页加载执行一次（见 data-swup-ignore-script），
+					// 计时器不跨页重建，固定周期即可。
+					intervalStartTime = Date.now();
+					timerId = setInterval(function() {
+						if (!isPaused) {
+							intervalStartTime = Date.now();
+							crossfade('banner-image-slot-mobile', mobileCount, 'mobile');
+							crossfade('banner-image-slot-desktop', desktopCount, 'desktop');
+						}
+					}, interval);
 				}
 
 				function stopCarousel() {
