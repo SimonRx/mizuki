@@ -127,6 +127,14 @@ body.wallpaper-transparent #toc-inner-wrapper:has(table-of-contents[data-loaded=
     top: 0 !important;
   }
 
+  /* 隐藏态保留高度基准，仅由 transform+opacity 表达隐藏 */
+  body.enable-banner #banner-wrapper.mobile-hide-banner {
+    height: max(70vh, 450px) !important;
+    min-height: 450px;
+    max-height: none;
+    top: 0 !important;
+  }
+
   /* 主内容区域位置调整 */
   body.enable-banner .absolute.w-full.z-30:not(.mobile-main-no-banner) {
     top: max(70vh, 450px) !important;
@@ -183,6 +191,14 @@ body.wallpaper-transparent #toc-inner-wrapper:has(table-of-contents[data-loaded=
     top: 0 !important;
   }
 
+  /* 隐藏态保留高度基准，仅由 transform+opacity 表达隐藏 */
+  body.enable-banner #banner-wrapper.mobile-hide-banner {
+    height: max(75vh, 500px) !important;
+    min-height: 500px;
+    max-height: none;
+    top: 0 !important;
+  }
+
   /* 主内容区域位置调整 */
   body.enable-banner .absolute.w-full.z-30:not(.mobile-main-no-banner) {
     top: max(75vh, 500px) !important;
@@ -233,6 +249,13 @@ body.wallpaper-transparent #toc-inner-wrapper:has(table-of-contents[data-loaded=
 @media (768px <= width < 1280px) {
   /* Banner wrapper 高度优化 */
   body.enable-banner #banner-wrapper:not(.mobile-hide-banner) {
+    height: max(70vh, 500px) !important;
+    min-height: 500px;
+    top: 0 !important;
+  }
+
+  /* 隐藏态保留高度基准，仅由 transform+opacity 表达隐藏 */
+  body.enable-banner #banner-wrapper.mobile-hide-banner {
     height: max(70vh, 500px) !important;
     min-height: 500px;
     top: 0 !important;
@@ -409,6 +432,15 @@ html[data-banner-title-enabled="false"] .banner-text-overlay {
     max-height: none;
     top: 0 !important;
     transform: none !important;
+  }
+
+  /* 隐藏态保留高度基准，仅由 transform+opacity 表达隐藏 */
+  body.enable-banner.fullscreen-banner #banner-wrapper.mobile-hide-banner {
+    position: relative !important;
+    height: 100vh !important;
+    min-height: 100vh !important;
+    max-height: none;
+    top: 0 !important;
   }
 
   body.enable-banner.fullscreen-banner .absolute.w-full.z-30:not(.mobile-main-no-banner) {
@@ -679,6 +711,12 @@ html.is-page-transitioning #header-waves {
    ========================================================================== */
 @media (width < 1280px) and (orientation: landscape) {
   #banner-wrapper:not(.mobile-hide-banner) {
+    top: 0 !important;
+    height: 60vh !important;
+  }
+
+  /* 隐藏态保留高度基准，仅由 transform+opacity 表达隐藏 */
+  #banner-wrapper.mobile-hide-banner {
     top: 0 !important;
     height: 60vh !important;
   }
